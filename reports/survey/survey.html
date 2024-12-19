@@ -1,0 +1,1795 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.5.55">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Brett Hagan">
+<meta name="author" content="Imran Shah">
+<meta name="author" content="Grace Patlewicz">
+<meta name="dcterms.date" content="2024-12-19">
+<meta name="keywords" content="Read-Across, Graph similarity, Graph kernels, Graph convolutional networks (GCNs)">
+
+<title>Can graph similarity metrics be helpful for analogue identification as part of a read-across approach?</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="survey_files/libs/clipboard/clipboard.min.js"></script>
+<script src="survey_files/libs/quarto-html/quarto.js"></script>
+<script src="survey_files/libs/quarto-html/popper.min.js"></script>
+<script src="survey_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="survey_files/libs/quarto-html/anchor.min.js"></script>
+<link href="survey_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="survey_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="survey_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="survey_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="survey_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="survey.pdf"><i class="bi bi-file-pdf"></i>PDF (elsevier)</a></li><li><a href="survey.docx"><i class="bi bi-file-word"></i>MS Word</a></li></ul></div></div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Can graph similarity metrics be helpful for analogue identification as part of a read-across approach?</h1>
+</div>
+
+
+<div class="quarto-title-meta-author">
+  <div class="quarto-title-meta-heading">Authors</div>
+  <div class="quarto-title-meta-heading">Affiliations</div>
+  
+    <div class="quarto-title-meta-contents">
+    <p class="author">Brett Hagan </p>
+  </div>
+  <div class="quarto-title-meta-contents">
+        <p class="affiliation">
+            ORAU
+          </p>
+        <p class="affiliation">
+            Center for Computational Toxicology and Exposure (CCTE)
+          </p>
+      </div>
+    <div class="quarto-title-meta-contents">
+    <p class="author">Imran Shah </p>
+  </div>
+  <div class="quarto-title-meta-contents">
+        <p class="affiliation">
+            Center for Computational Toxicology and Exposure (CCTE)
+          </p>
+      </div>
+    <div class="quarto-title-meta-contents">
+    <p class="author">Grace Patlewicz </p>
+  </div>
+  <div class="quarto-title-meta-contents">
+      </div>
+  </div>
+
+<div class="quarto-title-meta">
+
+      
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">December 19, 2024</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+<div>
+  <div class="abstract">
+    <div class="block-title">Abstract</div>
+    <p>Read-across is a technique used to fill data gaps for substances lacking specific hazard data. The technique relies on identifying source analogues with relevant data that are ‘similar’ to the substance of interest (the target). Typically, source analogues are identified on the basis of structural similarity but the evaluation of their suitability for read-across depends on other contexts of similarity including their physical property information, chemical reactivity, bioactivity and metabolism. Whilst quantifying structural similarity is well established, often relying on chemical fingerprints and using a similarity index such as Tanimoto to limit the number of analogues returned, characterising other aspects of similarity objectively remains a challenge. Many different aspects of a substance and its associated properties lend themselves to being represented by graphs which offers alternative means by which analogues could be potentially identified and evaluated for read-across purposes. This manuscript considered at least three such methods; graph kernel, graph embedding, and deep learning (DL) approaches and explored their utility for analogue identification using 5 datasets of varying size and diversity. Comparisons were made using two chemical fingerprint approaches, ToxPrints and Morgan fingerprints.</p>
+  </div>
+</div>
+
+<div>
+  <div class="keywords">
+    <div class="block-title">Keywords</div>
+    <p>Read-Across, Graph similarity, Graph kernels, Graph convolutional networks (GCNs)</p>
+  </div>
+</div>
+
+</header>
+
+
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<section id="sec-background" class="level2">
+<h2 class="anchored" data-anchor-id="sec-background">Background to Read-Across</h2>
+<p>There are tens of thousands of substances that exist in active commerce e.g.&nbsp;the US Toxic Substances Control Act (TSCA) comprises ~42,000 substances, of which only a small proportion have undergone sufficient toxicological evaluation. In a recent EPA report <span class="citation" data-cites="etap_2024">(<a href="#ref-etap_2024" role="doc-biblioref">USEPA 2024</a>)</span>, only 15% of substances in US commerce had been subjected to any of the standard toxicity tests used to characterise human health that assessing each chemical would present a significant and impractical challenge in terms of cost, animal welfare, and resources <span class="citation" data-cites="nrc_toxicity_1984">(<a href="#ref-nrc_toxicity_1984" role="doc-biblioref">NRC 1984</a>)</span>. <em>In vitro</em> and <em>in silico</em> approaches have the potential to play a large role in prioritising which chemicals to focus on in the absence of conventional toxicity data. <em>In silico</em> approaches encompass (quantitative) structure-activity relationships ((Q)SAR) as well as read-across, both of which relate chemical structure to (eco)toxicological or physical property endpoints. QSARs are often used to address gaps for environmental fate, ecotoxicological and physical property endpoints whereas read-across is most commonly used for human health related endpoints. To illustrate its significance for regulatory purposes, read-across is cited as the most commonly used adaptation to address information requirements under the European Union’s Registration Evaluation and Authorisation of Chemicals (REACH) regulation <span class="citation" data-cites="eu_regulation_2006 macmillan_last_2024">(<a href="#ref-eu_regulation_2006" role="doc-biblioref">Commission 2006</a>; <a href="#ref-macmillan_last_2024" role="doc-biblioref">Macmillan et al. 2024</a>)</span>.</p>
+<p>In brief, read-across describes the method for filling a data gap whereby a substance with existing data (termed the ‘source analogue’) is used to make a prediction of the same property for a ‘target’ substance with limited available empirical data. The approach relies on the premise that both source and target substances are ‘similar’ in some context with relevant information pertaining to a specific outcome <span class="citation" data-cites="enoch_chemical_2010 oecd_guidance_2014">(<a href="#ref-enoch_chemical_2010" role="doc-biblioref">Enoch 2010</a>; <a href="#ref-oecd_guidance_2014" role="doc-biblioref">OECD 2014</a>)</span>. Key to this approach is the characterisation of similarity. Although structural similarity is the most common approach used to identify candidate source analogues, other similarity contexts such as similarity in physicochemical properties, metabolism, chemical reactivity, bioactivity and toxicological profile also play a significant role in justifying the relevance and suitability of those source analogues for read-across. For example, metabolic similarity might entail an assessment of the similarity of transformation pathways or the commonality of metabolites formed as determined in experimental studies. Physicochemical similarity might compare certain physical property information such as the log of the octanol-water partition coefficient (logKow), melting point, boiling point etc. of source analogues relative to the target substance to determine whether physical form and partitioning are likely to be the same. Similarity in toxicity might evaluate whether the available empirical data identifies the same target organs impacted and whether the potencies are comparable or follow a specific trend. Such similarity context assessments are largely qualitative and heavily reliant on expert judgement in concert with empirical data <span class="citation" data-cites="patlewicz_building_2015">(<a href="#ref-patlewicz_building_2015" role="doc-biblioref">G. Patlewicz et al. 2015</a>)</span>. This does result in challenges in terms of reproducibility, scalability and acceptance for regulatory purposes <span class="citation" data-cites="shah_systematically_2016">(<a href="#ref-shah_systematically_2016" role="doc-biblioref">Shah et al. 2016</a>)</span>. Indeed, read-across as a technique has been in use for ~25 years, but acceptance for certain regulatory contexts (e.g.&nbsp;risk assessment) or within specific jurisdictions still remains variable <span class="citation" data-cites="patlewicz_towards_2023">(<a href="#ref-patlewicz_towards_2023" role="doc-biblioref">Grace Patlewicz and Shah 2023</a>)</span>. Thus, progress towards approaches that may increase confidence in and reduce the levels of inherent uncertainty in read-across predictions continue to be a focus of ongoing research.</p>
+<p>Significant effort has been directed towards the evaluation of confidence in analogue identification and evaluation across a wide range of studies <span class="citation" data-cites="patlewicz_building_2015 blackburn_framework_2014 schultz_assessing_2019 wu_framework_2010 patlewicz_navigating_2018">(<a href="#ref-patlewicz_building_2015" role="doc-biblioref">G. Patlewicz et al. 2015</a>; <a href="#ref-blackburn_framework_2014" role="doc-biblioref">Blackburn and Stuard 2014</a>; <a href="#ref-schultz_assessing_2019" role="doc-biblioref">Terry W. Schultz, Richarz, and Cronin 2019</a>; <a href="#ref-wu_framework_2010" role="doc-biblioref">Wu et al. 2010</a>; <a href="#ref-patlewicz_navigating_2018" role="doc-biblioref">Grace Patlewicz et al. 2018</a>)</span>. Several have aimed to define frameworks for characterising uncertainty <span class="citation" data-cites="schultz_assessing_2019 schultz_strategy_2015 blackburn_framework_2014 patlewicz_navigating_2018">(<a href="#ref-schultz_assessing_2019" role="doc-biblioref">Terry W. Schultz, Richarz, and Cronin 2019</a>; <a href="#ref-schultz_strategy_2015" role="doc-biblioref">T. W. Schultz et al. 2015</a>; <a href="#ref-blackburn_framework_2014" role="doc-biblioref">Blackburn and Stuard 2014</a>; <a href="#ref-patlewicz_navigating_2018" role="doc-biblioref">Grace Patlewicz et al. 2018</a>)</span>, whereas others have demonstrated how high-throughput screening data can be helpful in substantiating mechanistic or biological similarity within read-across justifications <span class="citation" data-cites="escher_towards_2019 patlewicz_navigating_2018 rovida_nam-supported_2021">(<a href="#ref-escher_towards_2019" role="doc-biblioref">Escher et al. 2019</a>; <a href="#ref-patlewicz_navigating_2018" role="doc-biblioref">Grace Patlewicz et al. 2018</a>; <a href="#ref-rovida_nam-supported_2021" role="doc-biblioref">Rovida et al. 2021</a>)</span>. The European Chemicals Agency (ECHA) have developed a read-across assessment framework in an effort to improve the characterisation and documentation of read-across uncertainties <span class="citation" data-cites="european_chemicals_agency_read-across_2017">(<a href="#ref-european_chemicals_agency_read-across_2017" role="doc-biblioref">European Chemicals Agency. 2017</a>)</span> whereas the Organisation of Economic and Co-operative Development (OECD) have been facilitating the development of case studies with the aim of updating existing grouping technical guidance <span class="citation" data-cites="oecd_guidance_2014">(<a href="#ref-oecd_guidance_2014" role="doc-biblioref">OECD 2014</a>)</span> with one focus being on reducing read-across uncertainties <span class="citation" data-cites="OECD_IATA">(<a href="#ref-OECD_IATA" role="doc-biblioref"><span>“Integrated <span>Approaches</span> to <span>Testing</span> and <span>Assessment</span> (<span>IATA</span>) - <span>OECD</span>”</span> n.d.</a>)</span>. In our own work, Generalised Read-Across (GenRA) <span class="citation" data-cites="shah_systematically_2016 patlewicz_towards_2023">(<a href="#ref-shah_systematically_2016" role="doc-biblioref">Shah et al. 2016</a>; <a href="#ref-patlewicz_towards_2023" role="doc-biblioref">Grace Patlewicz and Shah 2023</a>)</span> was created with the goals of quantifying performance and uncertainty by establishing performance baselines and quantifying the contribution that different similarity contexts play in identifying source analogues and making toxicity predictions. Research has continued to evaluate the impact that different types of similarity play in read-across for the prediction of <em>in vivo</em> toxicity outcomes <span class="citation" data-cites="patlewicz_systematic_2024 tate_repeat-dose_2021 helman_extending_2018 nelms_mechanistic_2018 boyce_comparing_2022">(<a href="#ref-patlewicz_systematic_2024" role="doc-biblioref">G. Patlewicz et al. 2024</a>; <a href="#ref-tate_repeat-dose_2021" role="doc-biblioref">Tate et al. 2021</a>; <a href="#ref-helman_extending_2018" role="doc-biblioref">Helman, Shah, and Patlewicz 2018</a>; <a href="#ref-nelms_mechanistic_2018" role="doc-biblioref">Nelms et al. 2018</a>; <a href="#ref-boyce_comparing_2022" role="doc-biblioref">Boyce et al. 2022</a>)</span> together with implementing the insights gained in the GenRA (www.comptox.gov/genra) web application <span class="citation" data-cites="patlewicz_towards_2023 shah_genra_2024">(<a href="#ref-patlewicz_towards_2023" role="doc-biblioref">Grace Patlewicz and Shah 2023</a>; <a href="#ref-shah_genra_2024" role="doc-biblioref">Shah and Patlewicz 2024</a>)</span>.</p>
+</section>
+<section id="source-analogue-identification" class="level2">
+<h2 class="anchored" data-anchor-id="source-analogue-identification">Source analogue identification</h2>
+<p>There are a number of software tools that facilitate the identification of source analogues. Most of these use structural similarity as a basis to return analogues. This is usually performed in one of two main ways - either by a descriptor-based similarity calculation or a substructure-based assessment <span class="citation" data-cites="kunimoto_maximum_2016">(<a href="#ref-kunimoto_maximum_2016" role="doc-biblioref">Kunimoto, Vogt, and Bajorath 2016</a>)</span>. In practice, this means that a software tool contains a large database (or dataset) of chemical substances that serves as a source analogue inventory. To identify analogues, a search query is performed using the target substance of interest to return candidate analogues. In a substructure-based approach, a determination of the substructures shared with the target substance are made or matched molecular pairs <span class="citation" data-cites="oboyle_using_2014 noauthor_matched_2021">(<a href="#ref-oboyle_using_2014" role="doc-biblioref">O’Boyle et al. 2014</a>; <a href="#ref-noauthor_matched_2021" role="doc-biblioref"><span>“A Matched Molecular Pair (<span>MMP</span>) Approach for Selecting Analogs Suitable for Structure Activity Relationship (<span>SAR</span>)-Based Read Across - <span>ScienceDirect</span>”</span> 2021</a>)</span> are generated to identify common core structures that are distinguished at a given site. Such substructure-based calculations are binary - either the target and source analogues share a pre-defined substructure or not, therefore no adjustable threshold exists to tune the returned set of candidate analogues. On the other hand, the hits returned are often more chemically intuitive and interpretable.</p>
+<p>In a descriptor-based approach, the key considerations are how the substances forming the source inventory are represented numerically and what metric is used to quantify a specific threshold of similarity. Source analogues can be characterised by 1D, 2D or 3D representations of structures or hybrids of these. The EPA CompTox Chemicals Dashboard <span class="citation" data-cites="williams_comptox_2017">(<a href="#ref-williams_comptox_2017" role="doc-biblioref">Williams et al. 2017</a>)</span>, <a href="https://pubchem.ncbi.nlm.nih.gov/">PubChem</a>, as well as the many functionalities within the OECD Toolbox (qsartoolbox.org) <span class="citation" data-cites="schultz_oecd_2018">(<a href="#ref-schultz_oecd_2018" role="doc-biblioref">Terry W. Schultz et al. 2018</a>)</span> facilitate such analogue searches. Two dimensional binary chemical fingerprints are frequently used for practical efficiency especially when a source inventory contains large numbers of substances e.g.&nbsp;1 million substances. A target substance will then be converted into the same chemical fingerprint representation and a query based on pairwise similarities will return a number of candidates either based on the similarity threshold set or the user-defined number of candidates. The similarity threshold is a quantitative measure between 0 and 1 that summarises the commonality in structure based on the presence and absence of particular chemical fingerprints. By far, the most common similarity index that is used in the Tanimoto (Jaccard) index <span class="citation" data-cites="bajusz_why_2015">(<a href="#ref-bajusz_why_2015" role="doc-biblioref">Bajusz, Rácz, and Héberger 2015</a>)</span> though there are a number of other similarity indices that can also be used <span class="citation" data-cites="bajusz_why_2015 floris_generalizable_2014">(<a href="#ref-bajusz_why_2015" role="doc-biblioref">Bajusz, Rácz, and Héberger 2015</a>; <a href="#ref-floris_generalizable_2014" role="doc-biblioref">Floris et al. 2014</a>)</span>. The choice of similarity index depends on the chemical representation used. A Tanimoto index lends itself to binary fingerprints whereas other metrics (as outlined in Gallegos-Saliner et al<span class="citation" data-cites="saliner_ecb">(<a href="#ref-saliner_ecb" role="doc-biblioref"><span>“A Similarity Based Approach for Chemical Category Classification”</span> 2005</a>)</span>) may be more suitable in cases where continuous descriptors represent the source analogues.</p>
+<p>There are several types of chemical fingerprints, one of the most popular the extended connectivity fingerprint (ECFP) or Morgan fingerprint <span class="citation" data-cites="rogers_extended-connectivity_2010">(<a href="#ref-rogers_extended-connectivity_2010" role="doc-biblioref">Rogers and Hahn 2010</a>)</span>. The ECFP defines molecular features by assigning identifiers to each of the atoms in the molecule based on some combination of properties such as atomic number, atomic mass etc. Then each atom collects its identifier and those of its neighbouring atoms into an array and uses a hash function to reduce the array into a single integer identifier. This captures the neighbourhood of the atom. Once all atoms have generated their new identifiers, these are updated and the process is performed several times over. After each iteration, the identifier contains information about the immediate neighbours and then the neighbours of those neighbours and so on until each atom will contain information from all parts of the molecule. Finally the identifiers are converted into a bit array depending on the length of the fingerprint array that the user has defined. ECFP4 is probably the most common ECFP fingerprint where the 4 denotes the largest possible fragment having a width of 4 bonds.</p>
+<p>Another type of fingerprint is the key or dictionary fingerprint where there is a defined fixed set of substructural features representing molecular characteristics. MACCS (Molecular Access System by Molecular Design Limited) <span class="citation" data-cites="durant_reoptimization_2002">(<a href="#ref-durant_reoptimization_2002" role="doc-biblioref">Durant et al. 2002</a>)</span> and ChemoType ToxPrints <span class="citation" data-cites="yang_new_2015">(<a href="#ref-yang_new_2015" role="doc-biblioref">Yang et al. 2015</a>)</span> are examples of these. The MACCS fingerprint was one of the first developed, containing 166 structural features. The original ToxPrints comprised a set of 729 generic structural fragments organised by atom, bond, chain, ring types as well as specific chemical groups. Atom pairs forms another type of fingerprint where an algorithm of atom typing is performed such that certain values for each atom of a molecule is computed <span class="citation" data-cites="carhart_atom_1985">(<a href="#ref-carhart_atom_1985" role="doc-biblioref">Carhart, Smith, and Venkataraghavan 1985</a>)</span>. An atom pair is defined in terms of the atomic environments of, and the shortest path separations between, all pairs of atoms in the topological representation of a chemical structure.</p>
+<p>In each case, the fingerprint is usually represented as a bit string or binary vector to denote presence and absence of a structural feature that can then be used as a query to search for source analogues. Some fingerprints can also encode counts to capture the number of occurrences of a structural feature rather than just its presence or absence.</p>
+<p>Chemical fingerprints have proved useful for fast similarity comparisons as well as inputs into development of QSARs for different activity outcomes including toxicity endpoints. The fingerprints themselves represent a simplified representation of a chemical that may be insufficient to resolve differences in toxicity outcomes that is important in read-across. For example, Morgan circular fingerprints are typically poor at perceiving global features of a molecule (e.g.&nbsp;size or shape) and may fail to discriminate between subtle changes between 2 small molecules. One particular issue with using Morgan fingerprints is that whilst they reflect which substructures are present in a molecule, their interconnectedness (particularly over large distances) is lost. More details on the different types of structural representations can be found in a recent review <span class="citation" data-cites="Banerjee_2024">(<a href="#ref-Banerjee_2024" role="doc-biblioref">Banerjee et al. 2024</a>)</span>.</p>
+<p>This study took inspiration from Mellor et al <span class="citation" data-cites="mellor_molecular_2019">(<a href="#ref-mellor_molecular_2019" role="doc-biblioref">Mellor et al. 2019</a>)</span>, to evaluate whether considering the inherent representation of a chemical structure as a molecular graph, with atoms as nodes and bonds as edges, might offer novel ways of characterising structural information and in turn similarity for read-across.</p>
+</section>
+<section id="topological-indices" class="level2">
+<h2 class="anchored" data-anchor-id="topological-indices">Topological indices</h2>
+<p>Of course, it important to acknowledge that considering chemicals as molecular graphs is not a novel concept. In fact, a wide variety of chemical properties and processes have been modelled using information derived from molecular graphs for many decades. Traditional topological indices for chemical structures are algebraic invariants of hydrogen depleted molecular graphs which represent the topology of a molecule. There are hundreds of topological indices but the majority can be broadly categorised into 5 main types namely: degree-based indices, distance-based indices, count-based indices, eigenvalue-based indices and information-theoretic indices <span class="citation" data-cites="Alameri_2021">(<a href="#ref-Alameri_2021" role="doc-biblioref">Alameri and Alsharafi 2021</a>)</span>.</p>
+<p>Degree indices are based on the degree of the nodes in the graph. Historically, the Zagreb Index which is based on the degrees of the nodes focusing on the sum of squares or products of node degrees was the first degree based structural descriptor though developed for a different purpose as described by Gutman <span class="citation" data-cites="gutman_2013">(<a href="#ref-gutman_2013" role="doc-biblioref">Gutman 2013</a>)</span>. The first true degree based topological index was put forward by Randic in 1975 <span class="citation" data-cites="randic_1975">(<a href="#ref-randic_1975" role="doc-biblioref">Randic 1975</a>)</span>. The so-named Randic Index is defined by the sum of the inverse of the square roots of the degrees of adjacent nodes. It is possibly one of the most widely applied topological indices in chemistry. Randic noted good correlation between the index and a number of physicochemical properties of alkanes such as surface area, boiling point. More information on the Randic index can be found in the following review by Li and Shi <span class="citation" data-cites="li_2008">(<a href="#ref-li_2008" role="doc-biblioref">Li and Sh 2008</a>)</span>.</p>
+<p>The most common distance based index is the Wiener Index, which represents the sum of the shortest-path distances between all pairs of nodes in the graph. Wiener demonstrated a correlation between the index and boiling points of alkanes <span class="citation" data-cites="wiener_1947">(<a href="#ref-wiener_1947" role="doc-biblioref">Wiener 1947</a>)</span>. Count based indices include the Hosoya Index which counts the number of matching sets in the graph. The Hosoya index was first introduced in 1971 <span class="citation" data-cites="Hosoya_1971">(<a href="#ref-Hosoya_1971" role="doc-biblioref">Hosoya 1971</a>)</span> demonstrating correlations between boiling points of alkanes. Eigenvalue based indices include the Estrada index which is the sum of the exponential of the eigenvalues of the adjacency matrix. Initially it was used to quantity the degree of folding of long chain molecules such as proteins. Gutman et al <span class="citation" data-cites="IvanGutman2011">(<a href="#ref-IvanGutman2011" role="doc-biblioref">Ivan Gutman 2011</a>)</span> provided an extensive survey on the Estrada index and its applications. Finally, information-theoretic indices use concepts from information theory to quantify the distribution of certain properties within the graph. The Shannon entropy, one such example, measures the diversity in the distribution of node degrees. It quantifies the complexity or diversity of a molecule based on the distribution of different atom types within its structure, essentially measuring the “uncertainty” in predicting which type of atom will be found at a given position within the molecule; a higher Shannon entropy indicates a greater variety of atom types and a more complex structure. Information entropy in chemistry has been extensively reviewed in Sabirov and Shepelvich <span class="citation" data-cites="sabirov_information_2021">(<a href="#ref-sabirov_information_2021" role="doc-biblioref">Sabirov and Shepelevich 2021</a>)</span>.</p>
+<p>Topological indices have been widely and successfully applied to the quantitative correlation of many different molecular properties notably boiling point, chemical reactivity as well as biological activity <span class="citation" data-cites="roy_use_2017 ramakrishnan_topological_2013">(<a href="#ref-roy_use_2017" role="doc-biblioref">Dearden 2017</a>; <a href="#ref-ramakrishnan_topological_2013" role="doc-biblioref">Ramakrishnan, Senbagamalar, and Babujee 2013</a>)</span>. Although the indices have been used in many QSAR studies, one of their main shortcomings has been a perceived lack of interpretability <span class="citation" data-cites="todeschini_chemical_1992">(<a href="#ref-todeschini_chemical_1992" role="doc-biblioref">Todeschini, Cazar, and Collina 1992</a>)</span>.</p>
+</section>
+<section id="graph-similarity" class="level2">
+<h2 class="anchored" data-anchor-id="graph-similarity">Graph Similarity</h2>
+<p>Topological indices provide a single, composite number that characterises each molecule’s structure. Whilst this approach is advantageous for its simplicity and efficiency, it often compresses complex structural information into one value, which can obscure finer details about specific molecular substructures. To address this, a broader range of graph similarity methods have been developed, allowing for more granular analysis. Techniques such as graph edit distance, graph isomorphism, and maximum common subgraph matching offer a way to directly compare molecular structures, identifying subtle differences and shared features that single-index values may overlook <span class="citation" data-cites="ullmann_algorithm_1976 pelillo_replicator_1999 melnik_similarity_2002 jeh_simrank_2002 zager_graph_2008 koutra_algorithms_2011 chartrand_graph_1998">(<a href="#ref-ullmann_algorithm_1976" role="doc-biblioref">Ullmann 1976</a>; <a href="#ref-pelillo_replicator_1999" role="doc-biblioref">Pelillo 1999</a>; <a href="#ref-melnik_similarity_2002" role="doc-biblioref">Melnik, Garcia-Molina, and Rahm 2002</a>; <a href="#ref-jeh_simrank_2002" role="doc-biblioref">Jeh and Widom 2002</a>; <a href="#ref-zager_graph_2008" role="doc-biblioref">Zager and Verghese 2008</a>; <a href="#ref-koutra_algorithms_2011" role="doc-biblioref">Koutra et al. 2011</a>; <a href="#ref-chartrand_graph_1998" role="doc-biblioref">Chartrand, Kubicki, and Schultz 1998</a>)</span>.</p>
+<section id="graph-edit-distances-using-reduced-graphs" class="level3">
+<h3 class="anchored" data-anchor-id="graph-edit-distances-using-reduced-graphs">Graph edit distances using Reduced graphs</h3>
+<p>Reduced graphs provide a summarised representation of a chemical structure that are produced by collapsing connected atoms into single nodes and forming edges between the nodes in accordance with bonds in the original structure. Reduced graphs have been used in a variety of applications in chemoinformatics ranging from the representation and search of Markush structures to the identification of structure-activity relationships (SARs). There are a number of different graph reduction schemes though each has been devised to address a different purpose <span class="citation" data-cites="gillet_similarity_2003 birchall_reduced_2011 birchall_training_2006">(<a href="#ref-gillet_similarity_2003" role="doc-biblioref">Gillet, Willett, and Bradshaw 2003</a>; <a href="#ref-birchall_reduced_2011" role="doc-biblioref">Birchall and Gillet 2011</a>; <a href="#ref-birchall_training_2006" role="doc-biblioref">Birchall et al. 2006</a>)</span>. Graph reduction schemes have been developed for similarity searching often with the objective of identifying substances with similarity in activity. Various methods have also been developed to quantify the similarity between reduced graphs from fingerprint approaches, graph matching as well as an edit distance method. The edit distance approach quantifies the degree of similarity of 2 reduced graphs based on the number and type of operations needed to convert one graph to the other. One benefit of the edit distance method is the ability to assign different weights to different operations - useful when deriving activity specific weights as evidenced in Birchall et al. <span class="citation" data-cites="birchall_training_2006">(<a href="#ref-birchall_training_2006" role="doc-biblioref">Birchall et al. 2006</a>)</span>. However, graph edit distance are computationally expensive unless approximation algorithms are used particularly for larger graphs. Garcia-Hernandez et al. <span class="citation" data-cites="RN25">(<a href="#ref-RN25" role="doc-biblioref">Garcia-Hernandez, Fernández, and Serratosa 2019</a>)</span> employed graph edit distances to reduced graph representations to estimate the bioactivity of a chemical on the basis of the bioactivity of similar compounds and found better performance than the array representation-based approaches they compared against.</p>
+</section>
+<section id="graph-isomorphism" class="level3">
+<h3 class="anchored" data-anchor-id="graph-isomorphism">Graph isomorphism</h3>
+<p>Several foundational questions of chemical similarity analysis have often been framed as graph comparison problems; chemical equivalence may be modelled as a graph isomorphism task, i.e.&nbsp;are two chemical graphs identical (isomorphic)? Another question may be to determine whether some chemical graph is included as part of another chemical. Searching for a specific substructure (e.g.&nbsp;a benzene ring) within another chemical has been modeled as a subgraph isomorphism task. The enumeration of possible chemical structures is closely related to graph enumeration <span class="citation" data-cites="RN22">(<a href="#ref-RN22" role="doc-biblioref">Akutsu and Nagamochi 2013</a>)</span>. Graph isomorphism is a test of structural equivalence, wherein two graphs are isomorphic if a structure exists that preserves a one-to-one correspondence between the two graphs sets of nodes and edges.</p>
+</section>
+<section id="maximum-common-subgraph" class="level3">
+<h3 class="anchored" data-anchor-id="maximum-common-subgraph">Maximum common subgraph</h3>
+<p>A common need in cheminformatics to the ability to align pairs of molecules together to make a determination of the degree of structural overlap. This is useful when exploring SARs, predicting bioactivity of substances or identifying chemical reaction sites. The degree of overlap between a pair of chemicals can be achieved using maximum common subgraph isomorphism algorithms <span class="citation" data-cites="duesbury_maximum_2017 raymond_maximum_2002">(<a href="#ref-duesbury_maximum_2017" role="doc-biblioref">Duesbury, Holliday, and Willett 2017</a>; <a href="#ref-raymond_maximum_2002" role="doc-biblioref">Raymond and Willett 2002</a>)</span>. In cheminformatics, maximum common subgraph isomorphism is usually referred to as identifying the maximum common substructure (MCS). Given two structures, the MCS is the largest substructure common to both. Maximum could be interpreted to imply the maximum number of atoms, number of bonds, number of cycles or even some physical property. There are also variations in how atom and bond equivalency might be defined. However, the most common MCS is where all atoms are the same if the element numbers are the same and the bonds are of the same type. There are a range of algorithms that can determine the MCS between pairs of chemicals. Some algorithms and perhaps the most prevalent work on the basis of identifying cliques or maximal cliques. A clique is a set of nodes in a graph such that each node is connected to each and every other node, with a maximal clique in a graph being one that is not contained within another large clique. Examples include the Bron-Kerbosch algorithm <span class="citation" data-cites="bron_algorithm_1973">(<a href="#ref-bron_algorithm_1973" role="doc-biblioref">Bron and Kerbosch 1973</a>)</span> which reports all of the maximal cliques found. TOPSIM <span class="citation" data-cites="durand_efficient_1999">(<a href="#ref-durand_efficient_1999" role="doc-biblioref">Durand et al. 1999</a>)</span> is another algorithm designed to find the Maximum Common Edge Subgraph (MCES) between two graphs. The Maximum Common Edge Subgraph is similar to the Maximum Common Subgraph (MCS) problem but focuses on finding the largest subgraph that has the maximum number of edges in common between the two graphs. In this case, the algorithm converts labelled graph representations of two molecules into a compatibility graph. Then a modified maximal clique algorithm is used to find the maximal clique which represents the largest common substructure (excluding common isolated atoms) for the two molecules. A maximal common substructure is obtained by combining the largest common substructure and the common isolated atoms. The size of a maximal common substructure is then used to define both a molecular similarity index and a topological distance for two molecules. Other types of algorithms include subgraph enumeration algorithms which involve enumerating all connected subgraphs common to the two graphs that are being compared and then returning the largest subgraph. Raymond and Willett <span class="citation" data-cites="raymond_maximum_2002">(<a href="#ref-raymond_maximum_2002" role="doc-biblioref">Raymond and Willett 2002</a>)</span> reviewed the main solutions for pairwise MCS including multiple MCS <span class="citation" data-cites="dalke_fmcs_2013">(<a href="#ref-dalke_fmcs_2013" role="doc-biblioref">Dalke and Hastings 2013</a>)</span>.</p>
+<p>Whilst methods such as the maximum common subgraph (MCS) excel at pinpointing shared structural features in pairwise comparisons, they can become computationally intensive and less scalable when applied to large chemical datasets. To address some of these limitations, more recent graph similarity approaches, such as graph kernel methods, graph embeddings, and deep learning-based techniques, have been developed. Graph kernel methods directly calculate a similarity score between two graphs based on their structural properties. Graph embedding methods transform graphs into numerical representations (vectors) that can be compared using standard distance metrics. These techniques are both unsupervised in that the representations are not tuned or customised for any specific outcome such as toxicity. Deep learning methods, a subset of graph embedding, learn these numerical representations using neural networks using labelled data such that the embeddings reflect some insights about the toxicity endpoint of interest.</p>
+</section>
+<section id="graph-kernels" class="level3">
+<h3 class="anchored" data-anchor-id="graph-kernels">Graph Kernels</h3>
+<p>Graph kernels were first introduced as a way to compare complex structures like graphs based on a concept from Haussler’s work on kernels for discrete structures <span class="citation" data-cites="kondor_diffusion_2002">(<a href="#ref-kondor_diffusion_2002" role="doc-biblioref">Kondor and Lafferty 2002</a>)</span>. The term “graph kernels” soon emerged to describe methods specifically for comparing graphs <span class="citation" data-cites="RN27 RN45 scholkopf_fast_2007">(<a href="#ref-RN27" role="doc-biblioref">Haussler, n.d.</a>; <a href="#ref-RN45" role="doc-biblioref">Kondor and Lafferty, n.d.</a>; <a href="#ref-scholkopf_fast_2007" role="doc-biblioref">Vishwanathan, Borgwardt, and Schraudolph 2007</a>)</span>. The core idea behind graph kernels is to break down a graph into smaller components, called substructures. These substructures are then used to create feature vectors, which characterise the graph. By comparing these feature vectors, it is possible to measure how similar two graphs are. The inner products of the feature vectors can be efficiently computed to produce a similarity score between the graphs. The key to graph kernels lies in how the graph is decomposed. One simple approach is to count how many node labels are shared between graphs and computing the inner products of these label counts to produce a similarity score <span class="citation" data-cites="kriege_survey_2020">(<a href="#ref-kriege_survey_2020" role="doc-biblioref">Kriege, Johansson, and Morris 2020</a>)</span>. <a href="#fig-count" class="quarto-xref">Figure&nbsp;1</a> provides a conceptual example of counting node labels.</p>
+<div id="fig-count" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-count-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="fig-count.png" class="img-fluid figure-img" style="width:100.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-count-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;1: Graph kernel counting node labels. The feature vectors for both graphs are constructed by counting the numbers of node labels in each graph. A similarity score is then obtained by computing the inner products of the feature vectors.
+</figcaption>
+</figure>
+</div>
+<p>There are many different ways to decompose a graph in order to compare them. One approach is through random walk kernels. This method involves taking random paths through the graph and counting how often each path occurs in each graph <span class="citation" data-cites="gartner_survey_2003">(<a href="#ref-gartner_survey_2003" role="doc-biblioref">Gärtner 2003</a>)</span>. Shortest path kernels aim to find the shortest paths between labelled nodes (atoms) in each graph and using these to construct feature vectors <span class="citation" data-cites="RN30">(<a href="#ref-RN30" role="doc-biblioref">Borgwardt and Kriegel, n.d.</a>)</span>. A more advanced method builds on the Weisfeiler-Lehman (WL) graph isomorphism heuristic that was introduced by Shervashidze in 2011; known as the WL subtree kernel <span class="citation" data-cites="RN46">(<a href="#ref-RN46" role="doc-biblioref">Shervashidze et al. 2011</a>)</span>. The WL isomorphism heuristic works by iteratively updating the labels of each atom based on the labels of its neighbouring atoms. Over several iterations, this process captures more detailed substructures within the molecule. This helps capture the context of each atom in the molecule gradually embedding the molecular structure into the labels. As the labels evolve, they encode increasingly larger neighbourhoods around each atom. This means that the WL kernel can capture structural features like functional groups that are shared between molecules. If at any point the labels of the atoms in the molecular graphs do not match, the algorithm is terminated as the two molecular graphs can not be isomorphic. The number of matching labels across iterations serves as a measure of graph similarity i.e.&nbsp;how similar the molecules are in terms of their structure. <a href="#fig-wl" class="quarto-xref">Figure&nbsp;2</a> shows an example iteration of the kernel between two graphs.</p>
+<div id="fig-wl" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-wl-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="wl.png" class="img-fluid figure-img" style="width:50.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-wl-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;2: One iteration of the WL kernel. Feature vectors initially consist of counts of original node labels. At each iteration, new labels (colors) are created for each atoms by considering the labels of its neighbours. Nodes a in both G1’ and G2’ are labeled grey as they were both adjacent to a single blue label in the previous iteration, whereas nodes e in G1’ and G2’ are assigned different labels due to the differences in their neighbouring node labels. The feature vectors consist of counts of the original and newly created node labels as iteration continues until a defined limit or convergence is reached. The inner products are computed to obtain a similarity score.
+</figcaption>
+</figure>
+</div>
+</section>
+<section id="sec-graphembed" class="level3">
+<h3 class="anchored" data-anchor-id="sec-graphembed">Graph Embeddings</h3>
+<p>Whilst there are numerous advantageous qualities to graph representations, the unstructured, relational nature of the data does not allow it to be directly used as inputs into QSAR models which require numerical data in the form of vectors <span class="citation" data-cites="cai_comprehensive_2018">(<a href="#ref-cai_comprehensive_2018" role="doc-biblioref">H. Cai, Zheng, and Chang 2018</a>)</span>. To overcome this limitation, graph embedding techniques are used to create lower dimensional representations of graph data whilst retaining as much topological and label (or feature) information as possible. Graph embeddings allow for a type of similarity measurement between graphs. Embedding methods represent graphs in a multi-dimensional latent space, where highly similar molecular graphs will lie near each other, whereas dissimilar molecular graphs will lie further apart. The distance between the embedding of two molecular graphs in the latent space provides a quantitative measure of similarity.</p>
+<p>A number of different methods exist that are capable of creating graph embeddings which can be broadly divided into two categories: node embeddings, and whole graph embeddings. <strong>Node embeddings</strong> map individual atoms in a molecular graph to numerical vectors, capturing atom characteristics and relationships. <strong>Graph embeddings</strong> on the other hand represent the entire molecular graph as a single vector, often by combining atom embeddings or using other methods, to permit pairwise molecular graph comparisons. There are a variety of different approaches to either task, with well established taxonomies in literature dividing them into three distinct categories; matrix factorisation methods, random walk based methods, and neural network methods, with substantial areas of overlap between the three <span class="citation" data-cites="xu_understanding_2021 goyal_graph_2018">(<a href="#ref-xu_understanding_2021" role="doc-biblioref">Xu 2021</a>; <a href="#ref-goyal_graph_2018" role="doc-biblioref">Goyal and Ferrara 2018</a>)</span>.</p>
+<p>Matrix factorisation techniques were the earliest studied, beginning with the multi-dimensional scaling (MDS) that decomposed adjacency matrices <span class="citation" data-cites="RN34">(<a href="#ref-RN34" role="doc-biblioref">Kruskal 1978</a>)</span>. Other factorisation methods operate on graph proximity (distance matrices) or graph Laplacian matrices <span class="citation" data-cites="RN35 RN36">(<a href="#ref-RN35" role="doc-biblioref">Tenenbaum, Silva, and Langford 2000</a>; <a href="#ref-RN36" role="doc-biblioref">Belkin and Niyogi 2003</a>)</span>. Although factorisation methods are the most well-established and theoretically understood, they often scale poorly <span class="citation" data-cites="xu_understanding_2020">(<a href="#ref-xu_understanding_2020" role="doc-biblioref">Xu 2020</a>)</span>. Random walk based embeddings <span class="citation" data-cites="perozzi_deepwalk_2014">(<a href="#ref-perozzi_deepwalk_2014" role="doc-biblioref">Perozzi, Al-Rfou, and Skiena 2014</a>)</span> later emerged based upon word and document embedding methodologies such as Word2Vec, adopting the skip-gram neural network model used to create word embeddings to the graph context. The skip-gram model is a simple single hidden layer neural network (see <a href="#fig-skip" class="quarto-xref">Figure&nbsp;3</a>) that is trained to predict the probabilities for each word in a given vocabulary to appear near in sequence to a given target word. The network is trained, and the weights of the trained network are exploited as vectorised word embeddings, with the underlying intuition being that words that often appear in similar contexts are likely highly similar in some context <span class="citation" data-cites="mikolov_efficient_2013">(<a href="#ref-mikolov_efficient_2013" role="doc-biblioref">Mikolov et al. 2013</a>)</span>.</p>
+<div id="fig-skip" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-skip-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="survey_skip_gram_figure.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-skip-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;3: Skip gram model for Word2Vec word embeddings. A one hidden layer neural network is trained to determine the probabilities for each word in a vocabulary of appearing near in sequence to a given target word. The target word is given as a one-hot encoded input, and after training via backpropagation over a number of epochs, the hidden weights of the network are used as embedded vector representations of words.
+</figcaption>
+</figure>
+</div>
+<p>In the chemistry domain, Jaeger et al <span class="citation" data-cites="jaeger_mol2vec_2018">(<a href="#ref-jaeger_mol2vec_2018" role="doc-biblioref">Jaeger, Fulle, and Turk 2018</a>)</span> developed Mol2vec which is synonymous to the concept of Word2Vec. Mol2Vec was developed to learn vector representations of molecular substructures that point in similar directions for chemical related substructures. Substuctures were derived using the the Morgan algorithms as “words” and substances as “sentences”. The Word2Vec algorithm was then applied to a corpus of 19.9 million substances taken from the ZINC and ChEMBL databases. The feature vectors for the substructures generated were then summed to obtain substance vectors which could be used as inputs for any subsequent machine learning approaches. Zhang et al <span class="citation" data-cites="zhang_spvec_2019">(<a href="#ref-zhang_spvec_2019" role="doc-biblioref">Zhang et al. 2019</a>)</span> proposed SPVec, constructed via the combination of SMILES2Vec and ProtVec to represent specific drug-target interactions, where the drug representation was simplified by using SMILES directly.&nbsp;Different from the work by Jaeger et al. <span class="citation" data-cites="jaeger_mol2vec_2018">(<a href="#ref-jaeger_mol2vec_2018" role="doc-biblioref">Jaeger, Fulle, and Turk 2018</a>)</span>, SMILES of drug molecules were used directly rather than generating Morgan substructures as “words” to learn the representations. The approach described in Asgari and Mofrad <span class="citation" data-cites="asgari_continuous_2015">(<a href="#ref-asgari_continuous_2015" role="doc-biblioref">Asgari and Mofrad 2015</a>)</span> was used to train ProtVec here, where protein sequences were regarded as “sentences” and every three non-overlapping amino acids were regarded as a “word.” SMILES2Vec itself was developed by Goh et al <span class="citation" data-cites="goh_smiles2vec_2018">(<a href="#ref-goh_smiles2vec_2018" role="doc-biblioref">Goh et al. 2018</a>)</span> using a deep recurrent neural network (RNN).</p>
+<p>DeepWalk adapted the SkipGram approach to a graph setting <span class="citation" data-cites="perozzi_deepwalk_2014">(<a href="#ref-perozzi_deepwalk_2014" role="doc-biblioref">Perozzi, Al-Rfou, and Skiena 2014</a>)</span> for node embedding. Words are analogous to nodes in the graph, the sequences of words (a “context”) are analogous to random walks across node neighborhoods, and the vocabulary of words is analogous to all nodes in the graph. Node2Vec iterated upon DeepWalk with the introduction of parameters to control the length and freedom of the random walk operations <span class="citation" data-cites="RN40">(<a href="#ref-RN40" role="doc-biblioref">Grover and Leskovec 2016</a>)</span>. Graph2Vec iterated upon Node2Vec to allow for skip-gram based whole graph embeddings based off rooted subgraphs analogous to words in Word2Vec <span class="citation" data-cites="narayanan_graph2vec_2017">(<a href="#ref-narayanan_graph2vec_2017" role="doc-biblioref">Narayanan et al. 2017</a>)</span>. In the context of molecular graphs, Graph2Vec identifies recurring substructures across many molecules and learns which are important and how they combine to form the whole molecule. The information is then encoded into a fixed length vector for each molecule. Each molecule is represented by a vector that captures the overall structure from both a local perspective (in terms of specific functional groups) in additional to more global patterns (like the arrangement of these features). GL2Vec improved upon Graph2Vec in classification tasks by incorporating information gleaned from a line graph representation, better allowing for the capture of structural information <span class="citation" data-cites="RN42">(<a href="#ref-RN42" role="doc-biblioref">Chen and Koga 2019</a>)</span>. Research has shown that more complicated approaches to graph embeddings may not necessarily result in better performance. The LDP (Local Degree Profile) embedding method was introduced in 2019 and showed comparable performance to more sophisticated embeddings methods while only considering the degree information of nodes in a graph without considering any label information whatsoever <span class="citation" data-cites="RN32">(<a href="#ref-RN32" role="doc-biblioref">Hongyun Cai, Zheng, and Chang 2018</a>)</span>.</p>
+</section>
+<section id="deep-learning-embeddings" class="level3">
+<h3 class="anchored" data-anchor-id="deep-learning-embeddings">Deep Learning Embeddings</h3>
+<p>Graph neural networks (GNNs) were introduced in 2009 with the goal of extending existing neural network models for processing graph structured data <span class="citation" data-cites="scarselli_graph_2009">(<a href="#ref-scarselli_graph_2009" role="doc-biblioref">Scarselli et al. 2009</a>)</span>. Graph convolutional networks (GCNs) were introduced by Duvenaud et al. <span class="citation" data-cites="duvenaud2015convolutional">(<a href="#ref-duvenaud2015convolutional" role="doc-biblioref">Duvenaud et al. 2015</a>)</span> to operate on graphs for molecular property predictions. Subsequently, Coley et al. <span class="citation" data-cites="coley2017convolutional">(<a href="#ref-coley2017convolutional" role="doc-biblioref">Coley et al. 2017</a>)</span> constructed feature vectors of atoms using atom and bond attributes in molecules and considered local chemical environment information within different neighborhood radii. By directly inputting the complete molecular graph into CNN, the model could learn to recognise atom cluster features, significantly improving the performance of the CNN model. Gilmer et al. <span class="citation" data-cites="gilmer2017international">(<a href="#ref-gilmer2017international" role="doc-biblioref">Gilmer et al. 2017</a>)</span> reformulated existing models as message passing neural networks (MPNN) and leveraged MPNN to demonstrate state-of-the-art results on quantum mechanical property prediction tasks for small organic molecules. Wang et al.&nbsp;(2019) used graph structures with convolutional networks to discover the relationship of each atom and designed a convolution spatial graph embedding layer (C-SGEL) to make full use of the spatial connectivity information of molecules <span class="citation" data-cites="wang_molecule_2019">(<a href="#ref-wang_molecule_2019" role="doc-biblioref">X. Wang et al. 2019</a>)</span>.</p>
+<p>At the base level, GCNs take a graph as input and pass it through a number of convolutional layers that aggregate each nodes neighbourhood information. At each training epoch, each node in the graph has its hidden state updated by aggregating each of the node’s neighbours hidden states together by some function and combining it with the current hidden state of the node. The output of convolutional layers is a set of node embeddings, vectorised representations of each node in the graph. Whole graph embeddings are generated from these individual node embeddings by combining them through a “pooling” layer that aggregates the node embeddings together. The resulting embeddings can then be used as inputs into different regression or classification based machine learning models.</p>
+<div id="fig-gcn-concept" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-gcn-concept-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="gcn_model.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-gcn-concept-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;4: Graph convolutional network conceptual model. A graph is given as input into the model and passed through a series of convolutional layers and activation functions that produce embeddings for each node in the graph. The individual node embeddings are aggregated together by some pooling operation in a readout layer in order to produce a whole graph embedding as output that can be used for structured ML tasks such as classification, regression, or prediction.
+</figcaption>
+</figure>
+</div>
+<p>The aim of this study was to compare and contrast different graph based approaches and their utility in assessing similarity for read-across. Morgan chemical and ToxPrint fingerprints were used as baseline comparators. Five different datasets were used to explore the graph kernel similarity, graph embedding, and deep learning (DL) approaches. The datasets were varied in size from an analogue approach case at one end of the spectrum to a larger dataset of genotoxicity outcomes for several thousand substances. The selection of the datasets were influenced by several considerations, namely they represented a range of endpoints and use cases which could influence the use of molecular similarity. For example, a single analogue approach would capture an expert assessment use case for repeated dose toxicity which would rely on finding a handful of candidate analogues with relevant data whereas the genotoxicity dataset with a large number of substances could leverage the potential utility of deep learning approaches.</p>
+</section>
+</section>
+</section>
+<section id="methods" class="level1">
+<h1>Methods</h1>
+<section id="datasets-analysed" class="level2">
+<h2 class="anchored" data-anchor-id="datasets-analysed">Datasets analysed</h2>
+<p>In total, five different datasets were chosen to investigate similarity in this study. These datasets were chosen as they represented different read-across scenarios, thus allowing several different types of similarity calculations to be performed on different representations of chemical structure. <a href="#tbl-datasets" class="quarto-xref">Table&nbsp;1</a> summarises the datasets.</p>
+<div id="tbl-datasets" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-datasets-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;1: The datasets investigated in this study with a description of the coverage and scope.
+</figcaption>
+<div aria-describedby="tbl-datasets-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: center;">Dataset No.</th>
+<th style="text-align: center;">Effect/Toxicity</th>
+<th style="text-align: center;">No.&nbsp;Chemicals</th>
+<th style="text-align: center;">Types of Chemicals</th>
+<th style="text-align: center;">Techniques attempted</th>
+<th style="text-align: center;">Reference</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">Repeated dose toxicity</td>
+<td style="text-align: center;">6</td>
+<td style="text-align: center;">Analogue approach for a nitrotoluene and its analogues</td>
+<td style="text-align: center;">WL</td>
+<td style="text-align: center;"><a href="https://www.epa.gov/pprtv">PPRTV</a></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">Local Lymph Node Assay (LLNA) for skin sensitisation that have both chemical and biological diversity</td>
+<td style="text-align: center;">222</td>
+<td style="text-align: center;">A broad range of chemicals capturing different reactivity mechanisms</td>
+<td style="text-align: center;">WL, Graph2Vec, Mol2Vec</td>
+<td style="text-align: center;">Patlewicz et al <span class="citation" data-cites="patlewicz_can_2016">(<a href="#ref-patlewicz_can_2016" role="doc-biblioref">Grace Patlewicz et al. 2016</a>)</span>; Asturiol et al <span class="citation" data-cites="asturiol_consensus_2016">(<a href="#ref-asturiol_consensus_2016" role="doc-biblioref">Asturiol, Casati, and Worth 2016</a>)</span></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">Fathead Minnow MOA aquatic acute toxicity</td>
+<td style="text-align: center;">617</td>
+<td style="text-align: center;">Broad range of chemicals capturing different MOAs</td>
+<td style="text-align: center;">WL, Graph2Vec, Mol2Vec</td>
+<td style="text-align: center;"><a href="https://sourceforge.net/projects/toxmatch/">Dataset taken from ToxMatch</a></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">BfR skin irritation</td>
+<td style="text-align: center;">70</td>
+<td style="text-align: center;">Training set of chemicals including aliphatic alcohols, esters, aldehydes and haloalkanes with classification information for skin irritation that was used to inform the BfR rulebase</td>
+<td style="text-align: center;">WL</td>
+<td style="text-align: center;"><a href="https://toxtree.sourceforge.net/skin.html">Dataset taken from Toxtree</a></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">Genotoxicity dataset</td>
+<td style="text-align: center;">5403</td>
+<td style="text-align: center;">Summary genotoxicity outcomes extracted from ToxValDB 9.5 but aggregated in accordance with <span class="citation" data-cites="pradeep_evaluation_2021">(<a href="#ref-pradeep_evaluation_2021" role="doc-biblioref">Pradeep et al. 2021</a>)</span></td>
+<td style="text-align: center;">Graph2Vec, GCN</td>
+<td style="text-align: center;">Pradeep et al. <span class="citation" data-cites="pradeep_evaluation_2021">(<a href="#ref-pradeep_evaluation_2021" role="doc-biblioref">Pradeep et al. 2021</a>)</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+</section>
+<section id="chemical-representations" class="level2">
+<h2 class="anchored" data-anchor-id="chemical-representations">Chemical representations</h2>
+<p>Morgan chemical fingerprints were generated using a radius of 3 and a bitvector length of 2048. ToxPrints were the original 729 features described in Yang et al. <span class="citation" data-cites="yang_new_2015">(<a href="#ref-yang_new_2015" role="doc-biblioref">Yang et al. 2015</a>)</span>. The WL substree kernel were generated using the Grakel python library<span class="citation" data-cites="siglidis_grakel_2020">(<a href="#ref-siglidis_grakel_2020" role="doc-biblioref">Siglidis et al. 2020</a>)</span>. Node level information used for the derivation of WL kernels comprised the atom type, its degree, hybridisation, aromaticity, formal charge and implicit hydrogen count. Graph2Vec embeddings were created using the KarateClub package<span class="citation" data-cites="karateclub">(<a href="#ref-karateclub" role="doc-biblioref">Rozemberczki, Kiss, and Sarkar 2020</a>)</span> from which pairwise cosine distances were calculated. Word2Vec was used to derive a model based on tokenised Morgan fingerprints to derive Mol2Vec type embeddings. A Mol2Vec approach to learning molecular embeddings inspired by natural language processing techniques like Word2Vec was applied to train a model to uncover embeddings. The DSSTox library of approx 0.5 million discrete structures was used as a corpus of diverse chemicals. SMILES were tokenised on the basis of Morgan chemical fingerprints. Gensim’s <span class="citation" data-cites="rehurek2011gensim">(<a href="#ref-rehurek2011gensim" role="doc-biblioref">Rehurek and Sojka 2011</a>)</span> Word2Vec engine to used to train a model to learn embeddings for the molecular fragments. Embeddings for the entire molecule were created by taking the mean of the fragment embeddings.</p>
+<p>The performance of the different representations were analysed via visualisation of the similarity (or distance) matrices. The ranges of scores were summarised as ranges to determine if any insights could be derived as to whether certain representations worked better for different datasets studied.</p>
+<p>For the largest dataset, genotoxicity, the Graph2Vec embeddings were also used as inputs in two classifier models; a k-NN classifier and logistic regression to assess their informative content. The 2 classifiers were implemented using the open source Python package scikit-learn <span class="citation" data-cites="RN53">(<a href="#ref-RN53" role="doc-biblioref">Pedregosa et al. 2011</a>)</span> with the area under the curve-receiver operating characteristic (AUC-ROC) as a performance metric. Model performance was assessed through a 5-fold cross validation procedure.</p>
+<p>For the deep learning graph convolutional neural network model, three convolutional layers (GATv2Conv convolutional layer, a graph attentional layer from Brody et al. <span class="citation" data-cites="RN56">(<a href="#ref-RN56" role="doc-biblioref">Brody, Alon, and Yahav 2021</a>)</span> with ReLU activation functions, a global mean pooling readout layer, and a single fully connected linear layer was used to make predictions. For the molecular graphs, one hot encodings of the atom symbol labels were attached as node feature vectors. The graphs were split into a training and validation set. Using cross entropy loss and an Adam optimiser with a learning rate of 0.001, the model was trained over 50 epochs, with the AUC score of the training and validation graphs reported at each epoch. After training, embeddings for the validation graphs were generated by inputting the graphs into the trained model and extracting the resultant embedding from the readout layer. These were visualised via t-SNE <span class="citation" data-cites="van_er_maaten_visualizing_2018">(<a href="#ref-van_er_maaten_visualizing_2018" role="doc-biblioref">Maaten and Hinton 2018</a>)</span> and labelled by outcome. The embeddings were also used as inputs into K-NN and logistic regression classification models, with performance compared against the use of Morgan chemical fingerprints.</p>
+</section>
+</section>
+<section id="data-and-code-availability" class="level1">
+<h1>Data and code availability</h1>
+<p>All analysis was performed in Python 3.10 using Jupyter notebooks. RDKit was used for generation of Morgan chemical fingerprints. The EPA Cheminformatics Modules were used to generate ToxPrints. Molecular graph representations were created using the Python package RDKit <span class="citation" data-cites="landrum_rdkit">(<a href="#ref-landrum_rdkit" role="doc-biblioref">Landrum, n.d.</a>)</span>. The open source Python package GraKeL <span class="citation" data-cites="siglidis_grakel_2020">(<a href="#ref-siglidis_grakel_2020" role="doc-biblioref">Siglidis et al. 2020</a>)</span> was used to implement the WL subtree kernel. The open source Python package KarateClub was used to create the Graph2Vec embeddings. Gensim <span class="citation" data-cites="rehurek2011gensim">(<a href="#ref-rehurek2011gensim" role="doc-biblioref">Rehurek and Sojka 2011</a>)</span> was used to train the Word2Vec model for the Mol2Vec approach. Scikit-learn <span class="citation" data-cites="RN53">(<a href="#ref-RN53" role="doc-biblioref">Pedregosa et al. 2011</a>)</span> was used to develop k-NN and logistic models for the embeddings derived from the Graph2Vec and GCN approaches. Pytorch geometric <span class="citation" data-cites="fey2019fastgraphrepresentationlearning">(<a href="#ref-fey2019fastgraphrepresentationlearning" role="doc-biblioref">Fey and Lenssen 2019</a>)</span> was used to train a GCN model for the genotoxicity dataset.</p>
+</section>
+<section id="results-and-discussion" class="level1">
+<h1>Results and Discussion</h1>
+<section id="pairwise-similarities" class="level2">
+<h2 class="anchored" data-anchor-id="pairwise-similarities">Pairwise similarities</h2>
+<section id="sec-llna" class="level3">
+<h3 class="anchored" data-anchor-id="sec-llna">LLNA</h3>
+<p>The LLNA dataset comprised 222 substances with their associated skin sensitising outcome as well as their reaction chemistry domain which discriminated between sensitisers that might act by a Schiff base mechanism from a Michael acceptor mechanism. The five main reaction domains associated with skin sensitisation are described by Roberts and Aptula in 2008 <span class="citation" data-cites="roberts_determinants_2008">(<a href="#ref-roberts_determinants_2008" role="doc-biblioref">Roberts and Aptula 2008</a>)</span>. Essentially, the rate determining step for skin sensitisation relies on a substance forming a covalent bond with a skin protein, thus substances that are electrophilic in nature can bind with nucleophilic skin proteins. Identifying potential skin sensitisers tends to involve identifying electrophilic reaction sites e.g.&nbsp;substances such as alpha, beta-unsaturated esters or aldehydes are activated to be able to act via a Michael addition reaction.</p>
+<p>Pairwise Jaccard similarities calculated from using Morgan chemical fingerprints were found to be typically low across the entire LLNA dataset. The maximum of the median pairwise similarities across all he substances was only 0.125, whereas the minimum value was 0.021. This marginally increased when the dataset was filtered to consider a specific reaction domain - the range of median pairwise similarities across the 29 Michael acceptors was 0.04-0.16, for the 20 Schiff base formers this was 0.05-0.13 and for the 14 Acyl transfer agents, it was 0.06-0.16. Pairwise Jaccard similarities across ToxPrints were higher, with the maximum median Jaccard similarity being 0.17 for the entire dataset but higher values were found for specific reaction domains; for Michael acceptors the maximum median Jaccard similarity was 0.32, for Schiff base formers, 0.25 and Acyl transfer agents was 0.195. Maximum median pairwise similarities were even higher using the WL subtree kernel; 0.34 for the entire dataset whereas the values tended to be lower for specific reaction domains e.g.&nbsp;0.24 for Michael acceptors, 0.22 for Schiff base formers and 0.34 for Acyl transfer agents.</p>
+<p><a href="#fig-ma" class="quarto-xref">Figure&nbsp;5</a> shows the pairwise similarities for the Michael acceptors using all 3 approaches where the orange cells are indicative of higher pairwise similarities. In panel 3 of <a href="#fig-ma" class="quarto-xref">Figure&nbsp;5</a>, few pairs of substances appear to be very similar based on Morgan fingerprints whereas there is a greater number within the WL and ToxPrint pairwise comparisons. For Michael acceptors characterised by Morgan fingerprints, 49% of the pairwise comparisons had similarities ranging from 0-0.1 whereas 43% of the comparisons fell within a similarity range of 0.1-0.3. In contrast, across the whole dataset characterised by Morgan fingerprints, 71% of the pairwise comparisons had a Jaccard similarity range of 0-0.1, with 27% having a similarity range of 0.1-0.3. For ToxPrints within the Michael acceptor domain, the variation was very different with 30% having a Jaccard similarity range between 0-0.1, 43% with a Jaccard similarity range of 0.1-0.3, 20% having a Jaccard similarity range of 0.3-0.5, and the remainder with similarities in excess of 0.5. Approx 5% of WL scores within the Michael domain were greater than 0.5.</p>
+<table class="caption-top table">
+<caption>Percentage of Michael acceptor pairs that fall into different similarity thresholds based on their structural representation</caption>
+<thead>
+<tr class="header">
+<th style="text-align: center;">Fingerprint Representation</th>
+<th style="text-align: center;">0-0.1</th>
+<th style="text-align: center;">0.1-0.3</th>
+<th style="text-align: center;">0.3-0.5</th>
+<th style="text-align: center;">0.5-0.7</th>
+<th style="text-align: center;">0.7-1</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">Morgan</td>
+<td style="text-align: center;">49%</td>
+<td style="text-align: center;">43.6%</td>
+<td style="text-align: center;">6.6%</td>
+<td style="text-align: center;">0.2%</td>
+<td style="text-align: center;">0.2%</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">ToxPrint</td>
+<td style="text-align: center;">30.5%</td>
+<td style="text-align: center;">43%</td>
+<td style="text-align: center;">19.9%</td>
+<td style="text-align: center;">4.67%</td>
+<td style="text-align: center;">1.7%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">WL</td>
+<td style="text-align: center;">31%</td>
+<td style="text-align: center;">52.2%</td>
+<td style="text-align: center;">11.8%</td>
+<td style="text-align: center;">4.4%</td>
+<td style="text-align: center;">0.4%</td>
+</tr>
+</tbody>
+</table>
+<div id="fig-ma" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-ma-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="llna_sim_all.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-ma-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;5: Pairwise similarity matrices across the 3 approaches for Michael acceptors. The pockets of oranges throughout the matrix highlight those pairs of chemicals that are most similar to each other. The frequency of the orange squares is much more pronounced in the ToxPrints heatmap overall whereas there are few if any cases in the Morgan heatmap.
+</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="llna_sim_MA.png" class="img-fluid figure-img"></p>
+<figcaption>Pairwise similarity matrices for Michael acceptors</figcaption>
+</figure>
+</div>
+<p>There would be an expectation of greater pairwise similarity within a given reaction domain, as the scope of the chemicals would be expected to react via the same reaction chemistry. The fact that the WL and ToxPrints showed a higher proportion of more similar pairs indicates that both these representations appear to be able to better capture the features important for the chemistry of the reaction domain. In contrast, there was little to discriminate the substances when represented by Morgan chemical fingerprints as indicated by the large proportion of pairwise similarities falling in the lowest ranges. Indeed, ToxPrints captured structural features that characterised the reaction domains well which explains the greater proportion of higher pairwise similarities. The WL approach appeared to be often better at characterising substructural features relevant for skin sensitisation better than Morgan fingerprints, as evidenced by almost 5% of pairs have a similarity of 0.5 or greater contrasted with only 0.4% of pairs based on Morgan fingerprints. A handful of example pairs from the same reaction are shown in <a href="#tbl-rxnss" class="quarto-xref">Table&nbsp;2</a> which demonstrates the higher similarities when using ToxPrints and the WL kernel.</p>
+<div id="tbl-rxnss" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-rxnss-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;2: Example cases of substances sharing the same reaction domain and their associated pairwise similarity score
+</figcaption>
+<div aria-describedby="tbl-rxnss-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 9%">
+<col style="width: 29%">
+<col style="width: 31%">
+<col style="width: 9%">
+<col style="width: 9%">
+<col style="width: 9%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: center;">Domain</th>
+<th style="text-align: center;"></th>
+<th style="text-align: center;"></th>
+<th style="text-align: center;">WL</th>
+<th style="text-align: center;">TxP</th>
+<th style="text-align: center;">Morgan</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">SB</td>
+<td style="text-align: center;">2,2,6,6-Tetramethyl-3,5-heptanedione (DTXSID7049396)</td>
+<td style="text-align: center;">5-Methyl-2,3-hexanedione (DTXSID7049215)</td>
+<td style="text-align: center;">0.21</td>
+<td style="text-align: center;">0.5</td>
+<td style="text-align: center;">0.185</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">MA</td>
+<td style="text-align: center;">Ethyl acrylate (DTXSID4020583)</td>
+<td style="text-align: center;">Butyl acrylate (DTXSID6024676)</td>
+<td style="text-align: center;">0.458</td>
+<td style="text-align: center;">0.66</td>
+<td style="text-align: center;">0.5</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">MA</td>
+<td style="text-align: center;">trans-2-decenal (DTXSID5047035)</td>
+<td style="text-align: center;">trans-2-hexenal (DTXSID1041425)</td>
+<td style="text-align: center;">0.53</td>
+<td style="text-align: center;">0.86</td>
+<td style="text-align: center;">0.48</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">Acyl</td>
+<td style="text-align: center;">Phthalic anhydride (DTXSID2021159)</td>
+<td style="text-align: center;">Trimellitic anhydride (DTXSID7026235)</td>
+<td style="text-align: center;">0.538</td>
+<td style="text-align: center;">0.7</td>
+<td style="text-align: center;">0.368</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+</section>
+<section id="bfr-skin-irritation" class="level3">
+<h3 class="anchored" data-anchor-id="bfr-skin-irritation">BfR skin irritation</h3>
+<p>The BfR dataset comprised 70 substances with their associated skin irritation classification outcome per the former EU Classification and Labelling regulation. Substances classified as irritants were labelled with as R38. <a href="#fig-bfr" class="quarto-xref">Figure&nbsp;6</a> shows heatmaps of the pairwise similarities based on Morgan, ToxPrint and WL structural representations. Overall, the WL heatmap shows a larger number of similar pairings compared with the other 2 fingerprint types.</p>
+<table class="caption-top table">
+<caption>Percentage of substance pairs that fall into different similarity thresholds based on their structural representation</caption>
+<thead>
+<tr class="header">
+<th style="text-align: center;">Fingerprint Representation</th>
+<th style="text-align: center;">0-0.1</th>
+<th style="text-align: center;">0.1-0.3</th>
+<th style="text-align: center;">0.3-0.5</th>
+<th style="text-align: center;">0.5-0.7</th>
+<th style="text-align: center;">0.7-1</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">Morgan</td>
+<td style="text-align: center;">74%</td>
+<td style="text-align: center;">22%</td>
+<td style="text-align: center;">2.98%</td>
+<td style="text-align: center;">0.6%</td>
+<td style="text-align: center;">0.2%</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">ToxPrint</td>
+<td style="text-align: center;">65.9%</td>
+<td style="text-align: center;">23.36%</td>
+<td style="text-align: center;">8.29%</td>
+<td style="text-align: center;">1.36%</td>
+<td style="text-align: center;">0.9%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">WL</td>
+<td style="text-align: center;">49.8%</td>
+<td style="text-align: center;">32.8%</td>
+<td style="text-align: center;">9.8%</td>
+<td style="text-align: center;">5.1%</td>
+<td style="text-align: center;">2.3%</td>
+</tr>
+</tbody>
+</table>
+<div id="fig-bfr" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-bfr-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="bfr_sim.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-bfr-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;6: Pairwise similarity matrices across the 3 approaches for the BfR dataset. The pockets of oranges throughout the matrix highlight those pairs of chemicals that are most similar to each other. The frequency of the orange squares is much more pronounced in the WL heatmap overall whereas there are few if any cases in the Morgan heatmap
+</figcaption>
+</figure>
+</div>
+<p><a href="#tbl-bfrss" class="quarto-xref">Table&nbsp;3</a> highlights several example pairs of chemicals and their pairwise similarities. It is evident that ToxPrints are not able to discriminate between the number of substituents present, such that 1,6-dibromohexane and 1-Bromohexane are considered equivalent whereas WL gives rise to a high similarity but the similarity based on Morgan fingerprints is only modest. The difference in chain length between 1-bromohexane and 1-bromopentane yields a much higher similarity when using ToxPrints but is less pronounced for the other two representations. Interestingly 1,6-dibromohexane is not irritating whereas both 1-bromohexane and 1-bromopentane are classified as irritating. None of the approaches take into account molecular size attributes which may have modulated the differences in irritation potential observed. 3-Phenylprop-2-enal and cyclamen aldehyde are both aldehydes which share a benzene though one has the potential to react through its double bond which is conjugated with the benzene ring. Both are irritating but their pairwise similarities were low ranging from 0.125-0.274. alpha-Terpineol and D-Limonene share a cyclic diene scaffold and are both irritating but their pairwise similarities are low although consistent across the 3 representations (0.4-0.5).</p>
+<div id="tbl-bfrss" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-bfrss-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;3: Example cases of substances and their associated pairwise similarity score
+</figcaption>
+<div aria-describedby="tbl-bfrss-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 40%">
+<col style="width: 7%">
+<col style="width: 9%">
+<col style="width: 9%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: center;"></th>
+<th style="text-align: center;"></th>
+<th style="text-align: center;">WL</th>
+<th style="text-align: center;">TxP</th>
+<th style="text-align: center;">Morgan</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">1,6-Dibromohexane (DTXSID4044452)</td>
+<td style="text-align: center;">1-Bromohexane (DTXSID4021929)</td>
+<td style="text-align: center;">0.72</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0.52</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">1-Bromohexane (DTXSID4021929)</td>
+<td style="text-align: center;">1-Bromopentane(DTXSID3049203)</td>
+<td style="text-align: center;">0.75</td>
+<td style="text-align: center;">0.9</td>
+<td style="text-align: center;">0.71</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">3-Phenylprop-2-enal (DTXSID1024835)</td>
+<td style="text-align: center;">Cyclamen aldehyde (DTXSID2044769)</td>
+<td style="text-align: center;">0.27</td>
+<td style="text-align: center;">0.2</td>
+<td style="text-align: center;">0.13</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">alpha-Terpineol (DTXSID5026625)</td>
+<td style="text-align: center;">D-Limonene (DTXSID1020778)</td>
+<td style="text-align: center;">0.415</td>
+<td style="text-align: center;">0.5</td>
+<td style="text-align: center;">0.4</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>When the pairwise similarities were stratified by whether substances were irritants or not, with Morgan fingerprints, there was an increase in the percentage pairs which were most similar (0.7-1) c.f 0.6% vs.&nbsp;0.2% whereas for ToxPrints, there was a shift for pairs with a low similarity (0.3-0.5) c.f. 13% vs 8.6% and for WL, this shift was most pronounced for moderate similarity range (0.5-0.7) cf.&nbsp;7.69% vs.&nbsp;5.1%.</p>
+<p>Examples of irritants with the highest similarities between each other were Sodium dodecyl sulfate (DTXSID1026031), Methyl hexadecanoate (DTXSID4029149), 1-Decanol (DTXSID7021946), 10-Undecenoic acid (DTXSID8035001), 1-Bromopentane (DTXSID3049203). However if a query was performed for one of these e.g.&nbsp;10-Undecenoic acid (DTXSID8035001), the top 3 closest analogues (Dodecanoic acid (DTXSID5021590), Methyl dodecanoate (DTXSID5026889), Methyl hexadecanoate (DTXSID4029149)) based on their WL scores were noted to be structurally related but spanned both irritants and non-irritants. None of the fingerprints used here encodes any features that helps to discriminate for irritation potential.</p>
+</section>
+<section id="sec-fhm" class="level3">
+<h3 class="anchored" data-anchor-id="sec-fhm">Fathead Minnow (FHM)</h3>
+<p>The FHM dataset comprised 617 substances with their associated acute lethality outcomes in fathead minnow as well as their mode of action (MOA) annotations. Probably the best known MOA scheme is that proposed by Verhaaret al<span class="citation" data-cites="verhaar_1992">(<a href="#ref-verhaar_1992" role="doc-biblioref">Verhaar, Leeuwen, and Hermens 1992</a>)</span>. The Verhaar scheme classifies organic compounds into one of four categories: inert chemicals (Class 1), less inert chemicals (Class 2), reactive chemicals (Class 3), and chemicals acting by a specific mechanism (Class 4). Chemicals in Class 1 exhibit nonpolar narcosis or baseline toxicity and can only be predicted if they have log octanol:water partition coefficient (Kow) values between 0 and 6 (e.g., benzenes).</p>
+<p>Chemicals in Class 2 are more toxic and cause polar narcosis, and typically possess hydrogen bond donor acidity (e.g., phenols and anilines). Chemicals in Class 3 demonstrate enhanced toxicity as compared to baseline toxicity and react nonspecifically with biomolecules (e.g., epoxides) or are metabolised into more toxic species (e.g., nitriles). Chemicals in Class 4 cause toxicity through a specific mechanism such as acetylcholinesterase (AChE) inhibition by carbamate insecticides. The assignment of a chemical to a class is based on a decision tree that utilises the presence or absence of certain chemical structures and moieties.</p>
+<p>Pairwise similarities using Morgan, ToxPrint fingerprints and the WL kernel were performed and stratified based on 2 of the MOAs (baseline narcosis which had the highest number of chemicals and a specific MOA for acetylcholinesterase activity (AChE)). <a href="#fig-fhm" class="quarto-xref">Figure&nbsp;7</a> depicts the heatmaps of the pairwise similarities based on these 3 structural representations and 2 MOAs. Overall, the WL heatmap shows a large number of similar pairings compared with the other 2 fingerprint types for baseline narcotics (12% of pairs had a similarity between 0.3-0.5) whereas ToxPrints appear to better differentiate for AChEs (over 7% of pairs had a similarity greater than 0.5). In the latter case, this was limited to several substances that were either closely related carbamates or organophosphates.</p>
+<div id="fig-fhm" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-fhm-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="fhm_sim.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-fhm-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;7: Pairwise similarity matrices across the 3 approaches for the FHM dataset. The pockets of oranges throughout the matrix highlight those pairs of chemicals that are most similar to each other. The frequency of the orange squares is more pronounced in the WL heatmap for substances acting as baseline narcotics whereas there are more examples of similar AChE pairs using ToxPrints
+</figcaption>
+</figure>
+</div>
+<p>As an example substance, the top 4 analogues for 1-Bromoheptane (DTXSID7022095) (nominally assigned as a baseline narcotic) were retrieved on the basis of the WL scores. Pairwise similarities for the analogues; 1-Bromohexane (DTXSID4021929), 1-Octanamine (DTXSID8021939), 1-octanol (DTXSID7021940), 1-Bromooctane (DTXSID3021938) all exceeded 0.78. However these pairwise similarities differed to a much greater extent if ToxPrints formed the basis of the representations. 1-Octanol and 1-octanamine had much lower similarities due to the different functional groups present relative to target 1-bromoheptane, yet all substances were presumed to act as baseline narcotics. For this dataset, ToxPrints appear to be better able to discriminate substances where specific functional groups were significant in characterising the MOA, such as the case for the AChE domain whereas the broader more general baseline narcosis domain benefited from the WL kernel representation to identify promising candidate analogues.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: center;">Name</th>
+<th style="text-align: center;">Role</th>
+<th style="text-align: center;">WL</th>
+<th style="text-align: center;">TxP</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">1-bromoheptane (DTXSID7022095)</td>
+<td style="text-align: center;">Target</td>
+<td style="text-align: center;">1.0</td>
+<td style="text-align: center;">1.0</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">1-bromooctane (DTXSID3021938)</td>
+<td style="text-align: center;">Analogue</td>
+<td style="text-align: center;">0.93</td>
+<td style="text-align: center;">0.91</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">1-bromohexane (DTXSID4021929)</td>
+<td style="text-align: center;">Analogue</td>
+<td style="text-align: center;">0.86</td>
+<td style="text-align: center;">1.0</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">1-octanol (DTXSID7021940)</td>
+<td style="text-align: center;">Analogue</td>
+<td style="text-align: center;">0.78</td>
+<td style="text-align: center;">0.36</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">1-octanamine (DTXSID8021939)</td>
+<td style="text-align: center;">Analogue</td>
+<td style="text-align: center;">0.78</td>
+<td style="text-align: center;">0.36</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="pprtv" class="level3">
+<h3 class="anchored" data-anchor-id="pprtv">PPRTV</h3>
+<p>A read-across example, comprising target substance 2-Amino-4,6-dinitrotoluene (2-ADNT) (CASRN 35572-78-2) and its structural analogues, was identified from one of the published EPA Provisional Peer-Reviewed Toxicity Values (PPRTV) assessments. A PPRTV is defined as a toxicity value derived for use in the EPA Superfund Program. PPRTVs are derived after a review of the relevant scientific literature using established EPA Agency guidance on human health toxicity value derivations. The objective is to provide support for the hazard and dose-response assessment pertaining to chronic and subchronic exposures of substances of concern, to present the major conclusions reached in the hazard identification and derivation of the PPRTVs, and to characterise the overall confidence in these conclusions and toxicity values. Current assessments can be accessed on the U.S. Environmental Protection Agency’s (EPA’s) PPRTV website at https://www.epa.gov/pprtv. In cases where there is a paucity of data to derive a PPRTV for a specific substance, an analogue approach is applied which permits the use of data from related substances to calculate a screening value. The exact procedure is described in more detail in Wang et al <span class="citation" data-cites="wang_application_2012">(<a href="#ref-wang_application_2012" role="doc-biblioref">N. C. Y. Wang et al. 2012</a>)</span>.</p>
+<p>Five structural analogues with relevant oral non cancer toxicity values were identified for the target substance 2-ADNT (see <a href="#tbl-pprtv" class="quarto-xref">Table&nbsp;4</a>).</p>
+<p><a href="#tbl-pprtv" class="quarto-xref">Table&nbsp;4</a> compares the WL scores with the Jaccard similarities based on Morgan and ToxPrint fingerprints.</p>
+<div id="tbl-pprtv" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-pprtv-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;4: 2-ADNT is denoted as the target substance based on its role designation. TNT was ultimately selected as the read-across candidate out of the 5 candidate analogues. WL, TxP and Morgan denote the similarity scores computed. WL relies on molecular graphs constructed using only atoms and other atom property information. The pairwise scores are shown in each case. e.g.&nbsp;TNT was determined to have a Jaccard similarity with 2-ADNT of 0.57 with Morgan fingerprints and 0.67 with ToxPrints whereas the WL score was 0.69.
+</figcaption>
+<div aria-describedby="tbl-pprtv-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+<col style="width: 16%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: center;">Substance</th>
+<th style="text-align: center;">Role</th>
+<th style="text-align: center;">DTXSID</th>
+<th style="text-align: center;">WL</th>
+<th style="text-align: center;">TxP</th>
+<th style="text-align: center;">Morgan</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">2-ADNT</td>
+<td style="text-align: center;">Target</td>
+<td style="text-align: center;">DTXSID6044068</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">TNT</td>
+<td style="text-align: center;">Selected</td>
+<td style="text-align: center;">DTXSID7024372</td>
+<td style="text-align: center;">0.69</td>
+<td style="text-align: center;">0.67</td>
+<td style="text-align: center;">0.57</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">2-Methyl-5-nitroaniline</td>
+<td style="text-align: center;">Candidate</td>
+<td style="text-align: center;">DTXSID4020959</td>
+<td style="text-align: center;">0.49</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0.4</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">Isopropalin</td>
+<td style="text-align: center;">Candidate</td>
+<td style="text-align: center;">DTXSID8024157</td>
+<td style="text-align: center;">0.39</td>
+<td style="text-align: center;">0.33</td>
+<td style="text-align: center;">0.21</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">Pendimethalin</td>
+<td style="text-align: center;">Candidate</td>
+<td style="text-align: center;">DTXSID7024245</td>
+<td style="text-align: center;">0.46</td>
+<td style="text-align: center;">0.37</td>
+<td style="text-align: center;">0.24</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">Trifluralin</td>
+<td style="text-align: center;">Candidate</td>
+<td style="text-align: center;">DTXSID4021395</td>
+<td style="text-align: center;">0.36</td>
+<td style="text-align: center;">0.26</td>
+<td style="text-align: center;">0.23</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>Based on an expert-driven evaluation of the structural, physicochemical, available toxicokinetic (TK) data, and toxicity data, 2,4,6-Trinitrotoluene (TNT) was actually selected as the ‘best analogue’ primarily based on its metabolic similarity, structural similarity, and shared metabolites. The similarity of toxicological outcomes across all the source analogues established confidence in the toxicologic read-across for 2-ADNT. TNT was also determined to be the most health-protective analogue because its point of departure (POD) and corresponding reference dose (RfD) value were lower than the other candidate analogues. WL and Jaccard (based on Morgan fingerprints) pairwise similarities across the target and all analogues are shown in <a href="#fig-pprtv" class="quarto-xref">Figure&nbsp;8</a>. TNT had both the highest WL score and Jaccard similarity on the basis of Morgan fingerprints. ToxPrints identified 2-methyl-5-nitroaniline as more similar on account of the number of repeating functional groups. Overall based on the highest WL score, TNT would have been prioritised as the most promising candidate analogue. However, that is not to say that the representation captures the other considerations that factored into its selection for the read-across of 2-ADNT.</p>
+<div id="fig-pprtv" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-pprtv-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="pprtv_sim.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-pprtv-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;8: Pairwise similarity matrices across the 3 approaches for 2-ADNT and its source analogues.
+</figcaption>
+</figure>
+</div>
+<p>Across 3 structurally diverse hetereogenous datasets (LLNA, BfR and FHM), WL was able to differentiate between structurally similar and dissimilar substances better than Morgan fingerprints and to some extent ToxPrints. WL iteratively relabels node information thereby capturing information about the atoms and the topology of the molecular graph. A refinement to the approach could consider adding bond information as another attribute in the node labels so that analogues could be refined further. This could better differentiate between certain functional groups especially those activated by an unsaturated bond e.g.&nbsp;alpha, beta-unsaturated aldehydes vs.&nbsp;alkyl aldehydes. When datasets were stratified by MOA or reaction chemistry that was well aligned with specific functional groups such as those indicative of electrophilic features, ToxPrints fared better at differentiating between chemicals. ToxPrints fare poorly when the presence of multiple functional groups is a factor e.g.&nbsp;2-ADNT and 2-methyl-5-nitroaniline were considered the same on account of the nitro group but the dinitro moiety would confer some different reaction chemistry. Based on the insights derived from exploring these datasets, WL does show promise in identifying candidate analogues but only where reactive chemistry is not a determining factor for the toxicity concerned.</p>
+</section>
+</section>
+<section id="unsupervised-graph-embeddings" class="level2">
+<h2 class="anchored" data-anchor-id="unsupervised-graph-embeddings">Unsupervised graph embeddings</h2>
+<section id="graph2vec" class="level3">
+<h3 class="anchored" data-anchor-id="graph2vec">Graph2Vec</h3>
+<p>Given WL focused on relabelling of nodes alone, Graph2Vec was next investigated in an attempt to learn graph-level embeddings of the substances within both the LLNA and FHM datasets. These datasets were chosen since they were modest in size. t-SNE 2D projections <span class="citation" data-cites="van_er_maaten_visualizing_2018">(<a href="#ref-van_er_maaten_visualizing_2018" role="doc-biblioref">Maaten and Hinton 2018</a>)</span> colour coded by the reaction domains (<a href="#fig-g2vllna" class="quarto-xref">Figure&nbsp;9</a>) (or MOA data not shown) showed no obvious clustering of the substances. Whilst a disappointing result, it does suggest that neither dataset was sufficiently large enough to permit a more generalised vocabulary of substructures and patterns to be generated in order to capture nuanced differences from the substances. Accordingly to make better use of the Graph2Vec technique, a much larger dataset of substances would be needed to learn useful embeddings.</p>
+<div id="fig-g2vllna" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-g2vllna-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="tsne_llna_graph2vec.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-g2vllna-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;9: TSNE plot of embeddings from Graph2Vec
+</figcaption>
+</figure>
+</div>
+<p>A case in point was that for 1-Bromoheptane (DTXSID7022095), the top 4 analogues based on the Graph2Vec embeddings and their cosine distance (range 0.45-0.47) were 2-Methoxyethylamine (DTXSID1021908), 2,3-Dihydrobenzofuran (DTXSID2022040), Methyl tert-butyl ether (DTXSID3020833) and 2-Chloro-1-methylpyridinium iodide (DTXSID6022260). Contrasting that were the cosine distances for the source analogues identified by using a WL kernel as discussed in <a href="#sec-fhm" class="quarto-xref">Section&nbsp;4.1.3</a> (see <a href="#tbl-fhm-g2v" class="quarto-xref">Table&nbsp;5</a>) which were all quite high (cosine distance ranging from 0-2) demonstrating that the embeddings did not determine these source analogues as being particularly similar.</p>
+<div id="tbl-fhm-g2v" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-fhm-g2v-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;5: WL similarities and cosine distances derived from Graph2Vec embeddings for WL-identified analogues of 1-bromoheptane as taken from the FHM dataset.
+</figcaption>
+<div aria-describedby="tbl-fhm-g2v-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: center;">Name</th>
+<th style="text-align: center;">Role</th>
+<th style="text-align: center;">WL</th>
+<th style="text-align: center;">Graph2Vec</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">1-bromoheptane (DTXSID7022095)</td>
+<td style="text-align: center;">Target</td>
+<td style="text-align: center;">1.0</td>
+<td style="text-align: center;">0.0</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">1-bromooctane (DTXSID3021938)</td>
+<td style="text-align: center;">Analogue</td>
+<td style="text-align: center;">0.93</td>
+<td style="text-align: center;">0.70</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">1-bromohexane (DTXSID4021929)</td>
+<td style="text-align: center;">Analogue</td>
+<td style="text-align: center;">0.86</td>
+<td style="text-align: center;">0.81</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">1-octanol (DTXSID7021940)</td>
+<td style="text-align: center;">Analogue</td>
+<td style="text-align: center;">0.78</td>
+<td style="text-align: center;">0.63</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">1-octanamine (DTXSID8021939)</td>
+<td style="text-align: center;">Analogue</td>
+<td style="text-align: center;">0.78</td>
+<td style="text-align: center;">0.66</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+</section>
+<section id="mol2vec" class="level3">
+<h3 class="anchored" data-anchor-id="mol2vec">Mol2Vec</h3>
+<p>The Mol2Vec model derived from DSSTox structures was then applied to both the LLNA and FHM datasets from which distance matrices using cosine as a metric were generated. Pairwise distances were explored for the entire dataset as well as different reaction domains/MOAs.</p>
+<p>Considering the same pairs of substances as in <a href="#sec-llna" class="quarto-xref">Section&nbsp;4.1.1</a>, pairwise cosine distances were found to be very low suggesting that the embeddings were able to resolve high similarities between the pairs in <a href="#tbl-llnam2v" class="quarto-xref">Table&nbsp;6</a>.</p>
+<div id="tbl-llnam2v" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-llnam2v-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;6: Pairwise similarities based on ToxPrint fingerprints and cosine distances from Mol2Vec embeddings for selected substances from the LLNA dataset
+</figcaption>
+<div aria-describedby="tbl-llnam2v-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<colgroup>
+<col style="width: 10%">
+<col style="width: 34%">
+<col style="width: 34%">
+<col style="width: 10%">
+<col style="width: 10%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: center;">Reaction domain</th>
+<th style="text-align: center;"></th>
+<th style="text-align: center;"></th>
+<th style="text-align: center;">Mol2Vec</th>
+<th style="text-align: center;">ToxPrint</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">MA</td>
+<td style="text-align: center;">Ethyl acrylate (DTXSID4020583)</td>
+<td style="text-align: center;">Butyl acrylate (DTXSID6024676)</td>
+<td style="text-align: center;">0.0096</td>
+<td style="text-align: center;">0.66</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">MA</td>
+<td style="text-align: center;">trans-2-decenal (DTXSID5047035)</td>
+<td style="text-align: center;">trans-2-hexenal (DTXSID1041425)</td>
+<td style="text-align: center;">0.015</td>
+<td style="text-align: center;">0.86</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">Acyl</td>
+<td style="text-align: center;">Phthalic anhydride (DTXSID2021159)</td>
+<td style="text-align: center;">Trimellitic anhydride (DTXSID7026235)</td>
+<td style="text-align: center;">0.0067</td>
+<td style="text-align: center;">0.7</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>However closer inspection of the cosine distance matrix revealed very little variation across the entire LLNA dataset. In fact, ~94% of the pairwise distances were in the range of 0-0.1 whereas the most dissimilar pairs had a cosine distance of up to 0.5. Searching for the top 5 source analogues for 1-Bromobutane (DTXSID6021903) identified very unrelated substances at least on their reaction domain. 1-Bromobutane would react by a SN2 mechanism with respect to skin sensitisation, whereas the source analogues identified were either non-reactive or Schiff base formers (DTXSID1021740, DTXSID6021583, DTXSID6020515 and DTXSID0021206).</p>
+<p>For the analogues identified based on WL for 1-bromoheptane, all the source analogues had a cosine distance of 0.004476-0.005743 but overall the cosine distance matrix for the FHM dataset had 93% of its pairwise distance in the range of 0-0.1 revealing it was unable to discriminate dissimilar substances effectively.</p>
+<p>Accordingly, a much larger corpus to learn the embeddings, in the order of 10s of million structures as used in the original work vs 1/2 million diverse structures from DSSTox would be needed to produce meaningful embeddings that could be then used to extract any useful insights for the 2 datasets herein. Of note, the original Mol2Vec package had been archived and it was not possible to recreate the same corpus used in that study to explore whether any useful embeddings might have been derived for the 2 datasets here.</p>
+<p>Unsupervised whole graph embeddings using Graph2Vec or Mol2Vec appear to offer the potential to better encode whole molecule information beyond the more limited capabilities that WL can offer in terms of capturing local neighbourhoods and atom information. However, for the 2 datasets explored, the embeddings learned from a ‘large’ dataset of 0.5 million DSSTox substances proved woefully insufficient to be able to resolve differences in structure that could be useful from a read-across perspective.</p>
+</section>
+</section>
+<section id="sec-graph2vec" class="level2">
+<h2 class="anchored" data-anchor-id="sec-graph2vec">Graph Embedding</h2>
+<p>As a final attempt to explore the utility of the graph embedding approach, a larger dataset of genotoxicity outcomes was used. The genotoxicity dataset was an updated version of that compiled in Pradeep et al <span class="citation" data-cites="pradeep_evaluation_2021">(<a href="#ref-pradeep_evaluation_2021" role="doc-biblioref">Pradeep et al. 2021</a>)</span> drawn from the EPA Toxicity Values database (ToxValDB). The same methodology as described in Pradeep et al <span class="citation" data-cites="pradeep_evaluation_2021">(<a href="#ref-pradeep_evaluation_2021" role="doc-biblioref">Pradeep et al. 2021</a>)</span> was used to create a dataset with a summary genotoxicity outcome for each chemical. Genotoxicity studies, including <em>in vitro</em> and <em>in vivo</em> chromosomal aberration, Ames, micronucleus, mouse lymphoma studies were initially retrieved from ToxValDB. To create a single outcome per chemical, the dataset was first grouped by substance identifier and summarized as follows: if a substance was associated with a positive Ames result, a positive genotoxicity outcome was returned, if a substance was not associated with a positive Ames but did have a reported positive chromosomal or micronucleus outcome, it was tagged as a clastogen. If only inconclusive studies were associated with a substance, an inconclusive tag was assigned, finally if only negative outcomes were associated with the substance, a non-genotoxicity outcome was returned. For the dataset compiled with structural information, there were 5403 chemicals with QSAR-READY SMILES and a genotoxicity outcome.</p>
+<p>Vectorised embeddings for each substance were derived using Graph2Vec embedding models. The embeddings were projected in 2D using a t-distributed stochastic neighborhood embedding (t-SNE) <span class="citation" data-cites="van_er_maaten_visualizing_2018">(<a href="#ref-van_er_maaten_visualizing_2018" role="doc-biblioref">Maaten and Hinton 2018</a>)</span>, which was color coded by genotoxicity outcome. <a href="#fig-g2vgene" class="quarto-xref">Figure&nbsp;10</a> shows the 2D projection though again there was little if any discrimination between positive and negative outcomes for genotoxicity.</p>
+<div id="fig-g2vgene" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-g2vgene-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="Graph2Vec_171224.png" class="img-fluid figure-img">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-g2vgene-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;10: Graph2Vec embeddings projected in 2D TSNE
+</figcaption>
+</figure>
+</div>
+<p>The embeddings were also used as inputs in 2 classifiers; a k-NN classifier and logistic regression to assess their informative content. As a baseline comparator, Morgan chemical fingerprints were used as feature inputs into the same two classifiers.</p>
+<div id="tbl-graph2vec" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-graph2vec-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;7: 5-fold cross validated k-nn and logistic regression genotoxicity classification results using Morgan fingerprints and the Graph2Vec embeddings method .
+</figcaption>
+<div aria-describedby="tbl-graph2vec-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: center;">Embedding Method</th>
+<th style="text-align: center;">K-NN</th>
+<th style="text-align: center;">Logistic Regression</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">Morgan FPs</td>
+<td style="text-align: center;">0.67</td>
+<td style="text-align: center;">0.73</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">Graph2Vec</td>
+<td style="text-align: center;">0.51</td>
+<td style="text-align: center;">0.552</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+<p>The quality of the embeddings generated by Graph2Vec failed to capture relevant chemical features effectively to be able to discriminate between genotoxic and non-genotoxic outcomes. Morgan chemical fingerprints outperformed the graph embeddings using both classifiers (see <a href="#tbl-graph2vec" class="quarto-xref">Table&nbsp;7</a>). Graph2Vec struggled to separate the data, with almost no discrimination between the two outcomes as shown in <a href="#fig-g2vgene" class="quarto-xref">Figure&nbsp;10</a>. Fine tuning parameters such as embedding length and learning rates could possibly increase performance since the embeddings were generated using the default parameters of the model. Default parameters were also used for the classification models, leaving another area of possible improvement.</p>
+</section>
+<section id="gcn-embeddings" class="level2">
+<h2 class="anchored" data-anchor-id="gcn-embeddings">GCN Embeddings</h2>
+<p>The same dataset as described <a href="#sec-graph2vec" class="quarto-xref">Section&nbsp;4.3</a> was used to demonstrate the applicability of the GCN embedding method.</p>
+<p>GCN embeddings were visualised via t-SNE and labelled by outcome as shown in <a href="#fig-gcn-nn" class="quarto-xref">Figure&nbsp;11</a>. The 5-fold cross validation AUC scores for the K-NN and Logistic regression using the GCN embeddings were found to be 0.659 and 0.778 respectively, a comparable performance to Morgan fingerprints using a K-NN approach but a marked improved with the logistic regression.</p>
+<div id="fig-gcn-nn" class="quarto-float quarto-figure quarto-figure-center anchored" data-fig-pos="H">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-gcn-nn-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="GCN_embedding_171224.png" class="img-fluid figure-img" data-fig-pos="H">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-gcn-nn-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;11: GCN embeddings of validation graph set labeled by genotoxicity outcome
+</figcaption>
+</figure>
+</div>
+<p>As with the previous graph embedding discussed in <a href="#sec-graph2vec" class="quarto-xref">Section&nbsp;4.3</a>, default parameters were used for both classification models, likely leaving room for improvement in performance through hyperparameter tuning. As with all DL models, there are a large number of options available when constructing a GCN architecture. Layer types, selection of activation functions, pooling methods, choice of loss functions and optimizers, as well as the fine tuning of parameters such as the optimiser’s learning rate, the number of training epochs and number of neurons per layer are all of significant importance in a network’s performance. Further experimentation with network architecture would likely lead to better performance, but for the purposes of this illustrative example, the application of a generically designed network without any fine tuning was still able to yield reasonable performance.</p>
+<p>Taking the embeddings generated for the validation set, and deriving the cosine metric identified 21.6% of pairings as falling in the range of 0-0.1 cosine distance, 44.46% in the 0.1-0.3 distance range, 21% in the 0.3-0.5 distance range, 8.4% in the 0.5-0.7 and 4.3% in the 0.7-1.0 distance range.</p>
+<p>For target substance, 3-Methyl-4-nitroquinoline 1-oxide (DTXSID8074944), the top 4 closest analogues as shown in <a href="#tbl-gcngen" class="quarto-xref">Table&nbsp;8</a> were identified. Three of analogues were associated with positive genetox outcomes in concordance with that of the target substance. These source analogues all contained nitroso moieties known to be associated with positive genetox outcomes. Whereas the unsupervised whole embedding approach proved unsuccessful, it was possible to use a much larger dataset of several thousand substances and use that to extract a learned embedding that encoded specific features that could discriminate for genotoxicity. These embeddings proved effective to retrieve similar analogues that were both structurally and toxicologically related, as demonstrated for the target DTXSID8074944.</p>
+<div id="tbl-gcngen" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-tbl figure">
+<figcaption class="quarto-float-caption-top quarto-float-caption quarto-float-tbl" id="tbl-gcngen-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Table&nbsp;8: Pairwise cosine distances for analogues related to DTXSID8074944
+</figcaption>
+<div aria-describedby="tbl-gcngen-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: center;"></th>
+<th style="text-align: center;">Cosine distance</th>
+<th style="text-align: center;">Genetox outcome</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">DTXSID8074944</td>
+<td style="text-align: center;">0.0</td>
+<td style="text-align: center;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">DTXSID9067980</td>
+<td style="text-align: center;">0.05</td>
+<td style="text-align: center;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">DTXSID8020751</td>
+<td style="text-align: center;">0.06</td>
+<td style="text-align: center;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">DTXSID8020593</td>
+<td style="text-align: center;">0.08</td>
+<td style="text-align: center;">1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">DTXSID70875601</td>
+<td style="text-align: center;">0.08</td>
+<td style="text-align: center;">1</td>
+</tr>
+</tbody>
+</table>
+</div>
+</figure>
+</div>
+</section>
+</section>
+<section id="conclusion" class="level1">
+<h1>Conclusion</h1>
+<p>In this study, a selection of approaches to quantify graph similarity were investigated using 5 different datasets to better understand their utility in identifying and evaluating analogues within a read-across approach compared with 2 conventional chemical fingerprint descriptors. A WL graph kernel approach was found to be useful in characterising potential analogues relative to 2-ADNT, identifying TNT as the most similar analogue. TNT was selected as the source analogue for use in the read-across assessment. The WL scores were found to be sensitive to the way in which the graphs were initially constructed such that if atom and bond characteristics were not sufficiently captured, local differences in structural representations could be underrepresented relative to the whole molecular effects and thereby overinflating the resulting scores. Careful attention is needed to capture node and edge information before their use. The Jaccard scores using Morgan fingerprints were lower no doubt highlighting that small changes in substituents and their positions are not well discriminated across the analogues relative to the target substance. Topological and label information played a significant role in ascertaining the WL similarities.</p>
+<p>In contrast embedding approaches building on the Mol2Vec approach were found to be extremely poor at capturing relevant molecular information to discriminate between substances of different reaction domains or MOAs. Graph2Vec approaches were also found to be ineffective in discriminating between substances that were genotoxic or not. Morgan fingerprints were found to be superior in predicting the genotoxicity outcomes.</p>
+<p>A Deep learning GCN model fared much better, with a marked improvement in performance compared with Morgan fingerprints for classifying for genotoxicity outcomes. Whereas the embedding approaches applied were unsupervised in nature, the GCN required labelled training data to create informed embeddings to facilitate genotoxicity classification. This performance increase observed also came at a cost of resources, complexity and required a much larger dataset for training purposes. The GCN approach can be computationally expensive, depending on model parameters, scale of datasets, size of graphs and graph features, and more.</p>
+<p>Overall these datasets helped to illustrate the potential that graph similarity approaches can play in the identification of suitable analogues for read-across. WL kernels were most useful for analogue identification where the endpoint is not mediated by reaction chemistry. Graph2Vec embeddings were shown to be ineffective in any of the example datasets despite the potential that whole graph embeddings might have to capturing structural information. For larger datasets with toxicity outcomes, GCN approaches produced embeddings informed by genotoxicity which showed better performance over Morgan type fingerprints and in identifying relevant analogues. Depending on use case and availability of training data, graph similarity could play a larger role in analogue identification and evaluation for read-across. Future work will consider the role that graph based approaches could play in encoding other types of information beyond structure such as metabolism information for read-across purposes.</p>
+</section>
+<section id="disclaimer" class="level1 unnumbered">
+<h1 class="unnumbered">Disclaimer</h1>
+<p>This manuscript reflects the opinions of the authors and are not reflective or the opinions or policies of the US EPA.</p>
+</section>
+<section id="references" class="level1 unnumbered">
+<h1 class="unnumbered">References</h1>
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
+<div id="ref-noauthor_matched_2021" class="csl-entry" role="listitem">
+<span>“A Matched Molecular Pair (<span>MMP</span>) Approach for Selecting Analogs Suitable for Structure Activity Relationship (<span>SAR</span>)-Based Read Across - <span>ScienceDirect</span>.”</span> 2021. <a href="https://www.sciencedirect.com/science/article/abs/pii/S0273230021001069">https://www.sciencedirect.com/science/article/abs/pii/S0273230021001069</a>.
+</div>
+<div id="ref-saliner_ecb" class="csl-entry" role="listitem">
+<span>“A Similarity Based Approach for Chemical Category Classification.”</span> 2005. JRC.
+</div>
+<div id="ref-RN22" class="csl-entry" role="listitem">
+Akutsu, Tatsuya, and Hiroshi Nagamochi. 2013. <span>“COMPARISON AND ENUMERATION OF CHEMICAL GRAPHS.”</span> Journal Article. <em>Computational and Structural Biotechnology Journal</em> 5 (6): e201302004. https://doi.org/<a href="https://doi.org/10.5936/csbj.201302004">https://doi.org/10.5936/csbj.201302004</a>.
+</div>
+<div id="ref-Alameri_2021" class="csl-entry" role="listitem">
+Alameri, Abdu, and Mohammed Alsharafi. 2021. <em>TOPOLOGICAL INDICES TYPES IN GRAPHS AND THEIR APPLICATIONS</em>.
+</div>
+<div id="ref-asgari_continuous_2015" class="csl-entry" role="listitem">
+Asgari, Ehsaneddin, and Mohammad R. K. Mofrad. 2015. <span>“Continuous <span>Distributed</span> <span>Representation</span> of <span>Biological</span> <span>Sequences</span> for <span>Deep</span> <span>Proteomics</span> and <span>Genomics</span>.”</span> <em>PloS One</em> 10 (11): e0141287. <a href="https://doi.org/10.1371/journal.pone.0141287">https://doi.org/10.1371/journal.pone.0141287</a>.
+</div>
+<div id="ref-asturiol_consensus_2016" class="csl-entry" role="listitem">
+Asturiol, D., S. Casati, and A. Worth. 2016. <span>“Consensus of Classification Trees for Skin Sensitisation Hazard Prediction.”</span> <em>Toxicology in Vitro: An International Journal Published in Association with BIBRA</em> 36 (October): 197–209. <a href="https://doi.org/10.1016/j.tiv.2016.07.014">https://doi.org/10.1016/j.tiv.2016.07.014</a>.
+</div>
+<div id="ref-bajusz_why_2015" class="csl-entry" role="listitem">
+Bajusz, Dávid, Anita Rácz, and Károly Héberger. 2015. <span>“Why Is <span>Tanimoto</span> Index an Appropriate Choice for Fingerprint-Based Similarity Calculations?”</span> <em>Journal of Cheminformatics</em> 7 (1): 20. <a href="https://doi.org/10.1186/s13321-015-0069-3">https://doi.org/10.1186/s13321-015-0069-3</a>.
+</div>
+<div id="ref-Banerjee_2024" class="csl-entry" role="listitem">
+Banerjee, A., S. Kar, K. Roy, G. Patlewicz, N. Charest, E. Benfenati, and MTD Cronin. 2024. <span>“Molecular Similarity in Chemical Informatics and Predictive Toxicity Modeling: From Quantitative Read-Across (q-RA) to Quantitative Read-Across Structure-Activity Relationship (q-RASAR) with the Application of Machine Learning.”</span> <em>Crit Rev Toxicol.</em> 54: 659–84. <a href="https://doi.org/10.1080/10408444.2024.2386260">https://doi.org/10.1080/10408444.2024.2386260</a>.
+</div>
+<div id="ref-RN36" class="csl-entry" role="listitem">
+Belkin, M., and P. Niyogi. 2003. <span>“Laplacian Eigenmaps for Dimensionality Reduction and Data Representation.”</span> Journal Article. <em>Neural Computation</em> 15 (6): 1373–96. <a href="https://doi.org/10.1162/089976603321780317">https://doi.org/10.1162/089976603321780317</a>.
+</div>
+<div id="ref-birchall_reduced_2011" class="csl-entry" role="listitem">
+Birchall, Kristian, and Valerie J. Gillet. 2011. <span>“Reduced Graphs and Their Applications in Chemoinformatics.”</span> <em>Methods in Molecular Biology (Clifton, N.J.)</em> 672: 197–212. <a href="https://doi.org/10.1007/978-1-60761-839-3_8">https://doi.org/10.1007/978-1-60761-839-3_8</a>.
+</div>
+<div id="ref-birchall_training_2006" class="csl-entry" role="listitem">
+Birchall, Kristian, Valerie J. Gillet, Gavin Harper, and Stephen D. Pickett. 2006. <span>“Training Similarity Measures for Specific Activities: Application to Reduced Graphs.”</span> <em>Journal of Chemical Information and Modeling</em> 46 (2): 577–86. <a href="https://doi.org/10.1021/ci050465e">https://doi.org/10.1021/ci050465e</a>.
+</div>
+<div id="ref-blackburn_framework_2014" class="csl-entry" role="listitem">
+Blackburn, Karen, and Sharon B. Stuard. 2014. <span>“A Framework to Facilitate Consistent Characterization of Read Across Uncertainty.”</span> <em>Regulatory Toxicology and Pharmacology: RTP</em> 68 (3): 353–62. <a href="https://doi.org/10.1016/j.yrtph.2014.01.004">https://doi.org/10.1016/j.yrtph.2014.01.004</a>.
+</div>
+<div id="ref-RN30" class="csl-entry" role="listitem">
+Borgwardt, K. M., and H. P. Kriegel. n.d. <span>“Shortest-Path Kernels on Graphs.”</span> Conference Proceedings. In <em>Fifth IEEE International Conference on Data Mining (ICDM’05)</em>, 8 pp. <a href="https://doi.org/10.1109/ICDM.2005.132">https://doi.org/10.1109/ICDM.2005.132</a>.
+</div>
+<div id="ref-boyce_comparing_2022" class="csl-entry" role="listitem">
+Boyce, Matthew, Brian Meyer, Chris Grulke, Lucina Lizarraga, and Grace Patlewicz. 2022. <span>“Comparing the Performance and Coverage of Selected in Silico (Liver) Metabolism Tools Relative to Reported Studies in the Literature to Inform Analogue Selection in Read-Across: <span>A</span> Case Study.”</span> <em>Computational Toxicology (Amsterdam, Netherlands)</em> 21 (February): 1–15. <a href="https://doi.org/10.1016/j.comtox.2021.100208">https://doi.org/10.1016/j.comtox.2021.100208</a>.
+</div>
+<div id="ref-RN56" class="csl-entry" role="listitem">
+Brody, Shaked, Uri Alon, and Eran Yahav. 2021. <span>“How Attentive Are Graph Attention Networks?”</span> Journal Article. <em>ArXiv</em> abs/2105.14491.
+</div>
+<div id="ref-bron_algorithm_1973" class="csl-entry" role="listitem">
+Bron, Coen, and Joep Kerbosch. 1973. <span>“Algorithm 457: Finding All Cliques of an Undirected Graph.”</span> <em>Commun. ACM</em> 16 (9): 575–77. <a href="https://doi.org/10.1145/362342.362367">https://doi.org/10.1145/362342.362367</a>.
+</div>
+<div id="ref-RN32" class="csl-entry" role="listitem">
+Cai, Hongyun, Vincent W. Zheng, and Kevin Chen-Chuan Chang. 2018. <span>“A Comprehensive Survey of Graph Embedding: Problems, Techniques, and Applications.”</span> Journal Article. <em>IEEE Transactions on Knowledge Camp; Data Engineering</em> 30 (09): 1616–37. <a href="https://doi.org/10.1109/tkde.2018.2807452">https://doi.org/10.1109/tkde.2018.2807452</a>.
+</div>
+<div id="ref-cai_comprehensive_2018" class="csl-entry" role="listitem">
+Cai, H., V. W. Zheng, and K. Chang. 2018. <span>“A <span>Comprehensive</span> <span>Survey</span> of <span>Graph</span> <span>Embedding</span>: <span>Problems</span>, <span>Techniques</span>, and <span>Applications</span>.”</span> <em>IEEE Transactions on Knowledge &amp;Amp; Data Engineering</em> 30 (09): 1616–37. <a href="https://doi.org/10.1109/TKDE.2018.2807452">https://doi.org/10.1109/TKDE.2018.2807452</a>.
+</div>
+<div id="ref-carhart_atom_1985" class="csl-entry" role="listitem">
+Carhart, Raymond E., Dennis H. Smith, and R. Venkataraghavan. 1985. <span>“Atom Pairs as Molecular Features in Structure-Activity Studies: Definition and Applications.”</span> <em>Journal of Chemical Information and Computer Sciences</em> 25 (2): 64–73. <a href="https://doi.org/10.1021/ci00046a002">https://doi.org/10.1021/ci00046a002</a>.
+</div>
+<div id="ref-chartrand_graph_1998" class="csl-entry" role="listitem">
+Chartrand, G., G. Kubicki, and M. Schultz. 1998. <span>“Graph Similarity and Distance in Graphs.”</span> <em>Aequationes Mathematicae</em> 55 (1): 129–45. <a href="https://doi.org/10.1007/s000100050025">https://doi.org/10.1007/s000100050025</a>.
+</div>
+<div id="ref-RN42" class="csl-entry" role="listitem">
+Chen, Hong, and Hisashi Koga. 2019. <span>“GL2vec: Graph Embedding Enriched by Line Graphs with Edge Features.”</span> Conference Proceedings. In, 3–14. Neural Information Processing. Springer International Publishing. https://doi.org/<a href="https://doi.org/10.1007/978-3-030-36718-3_1">https://doi.org/10.1007/978-3-030-36718-3_1</a>.
+</div>
+<div id="ref-coley2017convolutional" class="csl-entry" role="listitem">
+Coley, Connor W, Regina Barzilay, William H Green, Tommi S Jaakkola, and Klavs F Jensen. 2017. <span>“Convolutional Embedding of Attributed Molecular Graphs for Physical Property Prediction.”</span> <em>Journal of Chemical Information and Modeling</em> 57 (8): 1757–72.
+</div>
+<div id="ref-eu_regulation_2006" class="csl-entry" role="listitem">
+Commission, European. 2006. <span>“Regulation (<span>EC</span>) <span>No</span>&nbsp;1907/2006 of the <span>European</span> <span>Parliament</span> and of the <span>Council</span> of 18&nbsp;<span>December</span> 2006 Concerning the <span>Registration</span>, <span>Evaluation</span>, <span>Authorisation</span> and <span>Restriction</span> of <span>Chemicals</span> (<span>REACH</span>), Establishing a <span>European</span> <span>Chemicals</span> <span>Agency</span>, Amending <span>Directive</span> 1999/45/<span>EC</span> and Repealing <span>Council</span> <span>Regulation</span> (<span>EEC</span>) <span>No</span>&nbsp;793/93 and <span>Commission</span> <span>Regulation</span> (<span>EC</span>) <span>No</span>&nbsp;1488/94 as Well as <span>Council</span> <span>Directive</span> 76/769/<span>EEC</span> and <span>Commission</span> <span>Directives</span> 91/155/<span>EEC</span>, 93/67/<span>EEC</span>, 93/105/<span>EC</span> and 2000/21/<span>EC</span>.”</span> <a href="http://data.europa.eu/eli/reg/2006/1907/oj/eng">http://data.europa.eu/eli/reg/2006/1907/oj/eng</a>.
+</div>
+<div id="ref-dalke_fmcs_2013" class="csl-entry" role="listitem">
+Dalke, Andrew, and Janna Hastings. 2013. <span>“<span>FMCS</span>: A Novel Algorithm for the Multiple <span>MCS</span> Problem.”</span> <em>Journal of Cheminformatics</em> 5 (Suppl 1): O6. <a href="https://doi.org/10.1186/1758-2946-5-S1-O6">https://doi.org/10.1186/1758-2946-5-S1-O6</a>.
+</div>
+<div id="ref-roy_use_2017" class="csl-entry" role="listitem">
+Dearden, John C. 2017. <span>“The <span>Use</span> of <span>Topological</span> <span>Indices</span> in <span>QSAR</span> and <span>QSPR</span> <span>Modeling</span>.”</span> In, edited by Kunal Roy, 24:57–88. Cham: Springer International Publishing. <a href="https://doi.org/10.1007/978-3-319-56850-8_2">https://doi.org/10.1007/978-3-319-56850-8_2</a>.
+</div>
+<div id="ref-duesbury_maximum_2017" class="csl-entry" role="listitem">
+Duesbury, E., J. D. Holliday, and P. Willett. 2017. <span>“Maximum <span>Common</span> <span>Subgraph</span> <span>Isomorphism</span> <span>Algorithms</span>.”</span> <em>MATCH Communications in Mathematical and in Computer Chemistry</em> 77 (2): 213–32. <a href="http://match.pmf.kg.ac.rs/content77n2.htm">http://match.pmf.kg.ac.rs/content77n2.htm</a>.
+</div>
+<div id="ref-durand_efficient_1999" class="csl-entry" role="listitem">
+Durand, PJ, R Pasari, JW Baker, and C Tsai. 1999. <span>“An <span>Efficient</span> <span>Algorithm</span> for <span>Similarity</span> <span>Analysis</span> of <span>Molecules</span>.”</span> <em>Internet J. Chem.</em> 2: 1–16. <a href="https://www.cs.kent.edu/~jbaker/paper/">https://www.cs.kent.edu/~jbaker/paper/</a>.
+</div>
+<div id="ref-durant_reoptimization_2002" class="csl-entry" role="listitem">
+Durant, Joseph L., Burton A. Leland, Douglas R. Henry, and James G. Nourse. 2002. <span>“Reoptimization of <span>MDL</span> <span>Keys</span> for <span>Use</span> in <span>Drug</span> <span>Discovery</span>.”</span> <em>Journal of Chemical Information and Computer Sciences</em> 42 (6): 1273–80. <a href="https://doi.org/10.1021/ci010132r">https://doi.org/10.1021/ci010132r</a>.
+</div>
+<div id="ref-duvenaud2015convolutional" class="csl-entry" role="listitem">
+Duvenaud, David K, Dougal Maclaurin, Jorge Iparraguirre, Rafael Bombarell, Timothy Hirzel, Alán Aspuru-Guzik, and Ryan P Adams. 2015. <span>“Convolutional Networks on Graphs for Learning Molecular Fingerprints.”</span> <em>Advances in Neural Information Processing Systems</em> 28.
+</div>
+<div id="ref-enoch_chemical_2010" class="csl-entry" role="listitem">
+Enoch, Steven j. 2010. <span>“Chemical <span>Category</span> <span>Formation</span> and <span>Read</span>-<span>Across</span> for the <span>Prediction</span> of <span>Toxicity</span>.”</span> In <em>Recent <span>Advances</span> in <span>QSAR</span> <span>Studies</span>: <span>Methods</span> and <span>Applications</span></em>, edited by Tomasz Puzyn, Jerzy Leszczynski, and Mark T. Cronin, 209–19. Dordrecht: Springer Netherlands. <a href="https://doi.org/10.1007/978-1-4020-9783-6_7">https://doi.org/10.1007/978-1-4020-9783-6_7</a>.
+</div>
+<div id="ref-escher_towards_2019" class="csl-entry" role="listitem">
+Escher, Sylvia E., Hennicke Kamp, Susanne H. Bennekou, Annette Bitsch, Ciarán Fisher, Rabea Graepel, Jan G. Hengstler, et al. 2019. <span>“Towards Grouping Concepts Based on New Approach Methodologies in Chemical Hazard Assessment: The Read-Across Approach of the <span>EU</span>-<span>ToxRisk</span> Project.”</span> <em>Archives of Toxicology</em> 93 (12): 3643–67. <a href="https://doi.org/10.1007/s00204-019-02591-7">https://doi.org/10.1007/s00204-019-02591-7</a>.
+</div>
+<div id="ref-european_chemicals_agency_read-across_2017" class="csl-entry" role="listitem">
+European Chemicals Agency. 2017. <em>Read-<span>Across</span> <span>Assessment</span> <span>Framework</span> (<span>RAAF</span>).</em> LU: Publications Office. <a href="https://data.europa.eu/doi/10.2823/619212">https://data.europa.eu/doi/10.2823/619212</a>.
+</div>
+<div id="ref-fey2019fastgraphrepresentationlearning" class="csl-entry" role="listitem">
+Fey, Matthias, and Jan Eric Lenssen. 2019. <span>“Fast Graph Representation Learning with PyTorch Geometric.”</span> <a href="https://arxiv.org/abs/1903.02428">https://arxiv.org/abs/1903.02428</a>.
+</div>
+<div id="ref-floris_generalizable_2014" class="csl-entry" role="listitem">
+Floris, Matteo, Alberto Manganaro, Orazio Nicolotti, Ricardo Medda, Giuseppe Felice Mangiatordi, and Emilio Benfenati. 2014. <span>“A Generalizable Definition of Chemical Similarity for Read-Across.”</span> <em>Journal of Cheminformatics</em> 6 (1): 39. <a href="https://doi.org/10.1186/s13321-014-0039-1">https://doi.org/10.1186/s13321-014-0039-1</a>.
+</div>
+<div id="ref-RN25" class="csl-entry" role="listitem">
+Garcia-Hernandez, Carlos, Alberto Fernández, and Francesc Serratosa. 2019. <span>“Ligand-Based Virtual Screening Using Graph Edit Distance as Molecular Similarity Measure.”</span> Journal Article. <em>Journal of Chemical Information and Modeling</em> 59 (4): 1410–21. <a href="https://doi.org/10.1021/acs.jcim.8b00820">https://doi.org/10.1021/acs.jcim.8b00820</a>.
+</div>
+<div id="ref-gartner_survey_2003" class="csl-entry" role="listitem">
+Gärtner, Thomas. 2003. <span>“A Survey of Kernels for Structured Data.”</span> <em>SIGKDD Explor. Newsl.</em> 5 (1): 49–58. <a href="https://doi.org/10.1145/959242.959248">https://doi.org/10.1145/959242.959248</a>.
+</div>
+<div id="ref-gillet_similarity_2003" class="csl-entry" role="listitem">
+Gillet, Valerie J., Peter Willett, and John Bradshaw. 2003. <span>“Similarity Searching Using Reduced Graphs.”</span> <em>Journal of Chemical Information and Computer Sciences</em> 43 (2): 338–45. <a href="https://doi.org/10.1021/ci025592e">https://doi.org/10.1021/ci025592e</a>.
+</div>
+<div id="ref-gilmer2017international" class="csl-entry" role="listitem">
+Gilmer, Justin, SS Schoenholz, PF Riley, Oriol Vinyals, and GE Dahl. 2017. <span>“International Conference on Machine Learning.”</span> <em>Neural Message Passing for Quantum Chemistry</em>.
+</div>
+<div id="ref-goh_smiles2vec_2018" class="csl-entry" role="listitem">
+Goh, Garrett B., Nathan O. Hodas, Charles Siegel, and Abhinav Vishnu. 2018. <span>“<span>SMILES2Vec</span>: <span>An</span> <span>Interpretable</span> <span>General</span>-<span>Purpose</span> <span>Deep</span> <span>Neural</span> <span>Network</span> for <span>Predicting</span> <span>Chemical</span> <span>Properties</span>.”</span> arXiv. <a href="https://doi.org/10.48550/arXiv.1712.02034">https://doi.org/10.48550/arXiv.1712.02034</a>.
+</div>
+<div id="ref-goyal_graph_2018" class="csl-entry" role="listitem">
+Goyal, Palash, and Emilio Ferrara. 2018. <span>“Graph Embedding Techniques, Applications, and Performance: <span>A</span> Survey.”</span> <em>Knowledge-Based Systems</em> 151: 78–94. https://doi.org/<a href="https://doi.org/10.1016/j.knosys.2018.03.022">https://doi.org/10.1016/j.knosys.2018.03.022</a>.
+</div>
+<div id="ref-RN40" class="csl-entry" role="listitem">
+Grover, Aditya, and Jure Leskovec. 2016. <span>“Node2vec: Scalable Feature Learning for Networks.”</span> Journal Article. <em>Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining</em>.
+</div>
+<div id="ref-gutman_2013" class="csl-entry" role="listitem">
+Gutman, I. 2013. <span>“Degree-Based Topological Indices.”</span> <em>Croatica Chemica Acta</em> 86: 51–36. https://doi.org/<a href="http://dx.doi.org/10.5562/cca2294">http://dx.doi.org/10.5562/cca2294</a>.
+</div>
+<div id="ref-RN27" class="csl-entry" role="listitem">
+Haussler, David. n.d. <span>“Convolution Kernels on Discrete Structures UCSC CRL.”</span> Conference Proceedings. In.
+</div>
+<div id="ref-helman_extending_2018" class="csl-entry" role="listitem">
+Helman, George, Imran Shah, and Grace Patlewicz. 2018. <span>“Extending the <span>Generalised</span> <span>Read</span>-<span>Across</span> Approach (<span>GenRA</span>): <span>A</span> Systematic Analysis of the Impact of Physicochemical Property Information on Read-Across Performance.”</span> <em>Computational Toxicology (Amsterdam, Netherlands)</em> 8: 34–50. <a href="https://doi.org/10.1016/j.comtox.2018.07.001">https://doi.org/10.1016/j.comtox.2018.07.001</a>.
+</div>
+<div id="ref-Hosoya_1971" class="csl-entry" role="listitem">
+Hosoya, H. 1971. <span>“Topological Index. A Newly Proposed Quantity Characterizing the Topological Nature of Structural Isomers of Saturated Hydrocarbons.”</span> <em>Bull. Chem. Soc. Jpn.</em> 44: 2322–39.
+</div>
+<div id="ref-OECD_IATA" class="csl-entry" role="listitem">
+<span>“Integrated <span>Approaches</span> to <span>Testing</span> and <span>Assessment</span> (<span>IATA</span>) - <span>OECD</span>.”</span> n.d. Accessed May 24, 2024. <a href="https://www.oecd.org/chemicalsafety/risk-assessment/iata/">https://www.oecd.org/chemicalsafety/risk-assessment/iata/</a>.
+</div>
+<div id="ref-IvanGutman2011" class="csl-entry" role="listitem">
+Ivan Gutman, Slavko Radenković, Hanyuan Deng. 2011. <span>“The Estrada Index: An Updated Survey.”</span> <em>Zbornik Radova</em>, no. 22: 155–74. <a href="http://eudml.org/doc/256887">http://eudml.org/doc/256887</a>.
+</div>
+<div id="ref-jaeger_mol2vec_2018" class="csl-entry" role="listitem">
+Jaeger, Sabrina, Simone Fulle, and Samo Turk. 2018. <span>“Mol2vec: <span>Unsupervised</span> <span>Machine</span> <span>Learning</span> <span>Approach</span> with <span>Chemical</span> <span>Intuition</span>.”</span> <em>Journal of Chemical Information and Modeling</em> 58 (1): 27–35. <a href="https://doi.org/10.1021/acs.jcim.7b00616">https://doi.org/10.1021/acs.jcim.7b00616</a>.
+</div>
+<div id="ref-jeh_simrank_2002" class="csl-entry" role="listitem">
+Jeh, Glen, and Jennifer Widom. 2002. <span>“<span>SimRank</span>: A Measure of Structural-Context Similarity.”</span> In <em>Proceedings of the Eighth <span>ACM</span> <span>SIGKDD</span> International Conference on <span>Knowledge</span> Discovery and Data Mining</em>, 538–43. <span>KDD</span> ’02. New York, NY, USA: Association for Computing Machinery. <a href="https://doi.org/10.1145/775047.775126">https://doi.org/10.1145/775047.775126</a>.
+</div>
+<div id="ref-kondor_diffusion_2002" class="csl-entry" role="listitem">
+Kondor, Risi, and John Lafferty. 2002. <span>“Diffusion <span>Kernels</span> on <span>Graphs</span> and <span>Other</span> <span>Discrete</span> <span>Input</span> <span>Spaces</span>.”</span> <em>ICML</em> Vol. 2.
+</div>
+<div id="ref-RN45" class="csl-entry" role="listitem">
+Kondor, Risi, and John D. Lafferty. n.d. <span>“Diffusion Kernels on Graphs and Other Discrete Input Spaces.”</span> Conference Proceedings. In <em>International Conference on Machine Learning</em>.
+</div>
+<div id="ref-koutra_algorithms_2011" class="csl-entry" role="listitem">
+Koutra, Danai, Ankur Parikh, Aaditya Ramdas, and Jing Xiang. 2011. <span>“Algorithms for <span>Graph</span> <span>Similarity</span> and <span>Subgraph</span> <span>Matching</span>.”</span> Report. Carnegie Mellon University.
+</div>
+<div id="ref-kriege_survey_2020" class="csl-entry" role="listitem">
+Kriege, Nils M., Fredrik D. Johansson, and Christopher Morris. 2020. <span>“A Survey on Graph Kernels.”</span> <em>Applied Network Science</em> 5 (1): 1–42. <a href="https://doi.org/10.1007/s41109-019-0195-3">https://doi.org/10.1007/s41109-019-0195-3</a>.
+</div>
+<div id="ref-RN34" class="csl-entry" role="listitem">
+Kruskal. 1978. Electronic Book. <a href="https://doi.org/10.4135/9781412985130">https://doi.org/10.4135/9781412985130</a>.
+</div>
+<div id="ref-kunimoto_maximum_2016" class="csl-entry" role="listitem">
+Kunimoto, Ryo, Martin Vogt, and Jürgen Bajorath. 2016. <span>“Maximum Common Substructure-Based <span>Tversky</span> Index: An Asymmetric Hybrid Similarity Measure.”</span> <em>Journal of Computer-Aided Molecular Design</em> 30 (7): 523–31. <a href="https://doi.org/10.1007/s10822-016-9935-y">https://doi.org/10.1007/s10822-016-9935-y</a>.
+</div>
+<div id="ref-landrum_rdkit" class="csl-entry" role="listitem">
+Landrum, Greg L. n.d. <span>“<span>RDKit</span>: <span>Open</span>-Source Cheminformatics;”</span> <a href="http://www.rdkit.org">http://www.rdkit.org</a>.
+</div>
+<div id="ref-li_2008" class="csl-entry" role="listitem">
+Li, Xueliang., and Yongtang. Sh. 2008. <span>“A Survey on the Randic Index.”</span> <em>Match Commun Math Comput Chem</em> 59: 127–56.
+</div>
+<div id="ref-van_er_maaten_visualizing_2018" class="csl-entry" role="listitem">
+Maaten, L van er, and G Hinton. 2018. <span>“Visualizing <span>Data</span> Using t-<span>SNE</span>.”</span> <em>Journal of Machine Learning Research</em> 8: 2579–2605.
+</div>
+<div id="ref-macmillan_last_2024" class="csl-entry" role="listitem">
+Macmillan, Donna S., Anders Bergqvist, Eleanor Burgess-Allen, Ian Callan, James Dawick, Benjamin Carrick, Graham Ellis, et al. 2024. <span>“The Last Resort Requirement Under <span>REACH</span>: <span>From</span> Principle to Practice.”</span> <em>Regulatory Toxicology and Pharmacology</em> 147 (February): 105557. <a href="https://doi.org/10.1016/j.yrtph.2023.105557">https://doi.org/10.1016/j.yrtph.2023.105557</a>.
+</div>
+<div id="ref-mellor_molecular_2019" class="csl-entry" role="listitem">
+Mellor, C. L., R. L. Marchese Robinson, R. Benigni, D. Ebbrell, S. J. Enoch, J. W. Firman, J. C. Madden, G. Pawar, C. Yang, and M. T. D. Cronin. 2019. <span>“Molecular Fingerprint-Derived Similarity Measures for Toxicological Read-Across: <span>Recommendations</span> for Optimal Use.”</span> <em>Regulatory Toxicology and Pharmacology: RTP</em> 101 (February): 121–34. <a href="https://doi.org/10.1016/j.yrtph.2018.11.002">https://doi.org/10.1016/j.yrtph.2018.11.002</a>.
+</div>
+<div id="ref-melnik_similarity_2002" class="csl-entry" role="listitem">
+Melnik, S., H. Garcia-Molina, and E. Rahm. 2002. <span>“Similarity Flooding: A Versatile Graph Matching Algorithm and Its Application to Schema Matching.”</span> In <em>Proceedings 18th <span>International</span> <span>Conference</span> on <span>Data</span> <span>Engineering</span></em>, 117–28. San Jose, CA, USA: IEEE Comput. Soc. <a href="https://doi.org/10.1109/ICDE.2002.994702">https://doi.org/10.1109/ICDE.2002.994702</a>.
+</div>
+<div id="ref-mikolov_efficient_2013" class="csl-entry" role="listitem">
+Mikolov, Tomas, Kai Chen, Greg Corrado, and Jeffrey Dean. 2013. <span>“Efficient <span>Estimation</span> of <span>Word</span> <span>Representations</span> in <span>Vector</span> <span>Space</span>.”</span> arXiv. <a href="http://arxiv.org/abs/1301.3781">http://arxiv.org/abs/1301.3781</a>.
+</div>
+<div id="ref-narayanan_graph2vec_2017" class="csl-entry" role="listitem">
+Narayanan, Annamalai, Mahinthan Chandramohan, Rajasekar Venkatesan, Lihui Chen, Yang Liu, and Shantanu Jaiswal. 2017. <span>“Graph2vec: <span>Learning</span> <span>Distributed</span> <span>Representations</span> of <span>Graphs</span>.”</span> <em>ArXiv</em> abs/1707.05005.
+</div>
+<div id="ref-nelms_mechanistic_2018" class="csl-entry" role="listitem">
+Nelms, Mark D., Claire L. Mellor, Steven J. Enoch, Richard S. Judson, Grace Patlewicz, Ann M. Richard, Judith M. Madden, Mark T. D. Cronin, and Stephen W. Edwards. 2018. <span>“A <span>Mechanistic</span> <span>Framework</span> for <span>Integrating</span> <span>Chemical</span> <span>Structure</span> and <span>High</span>-<span>Throughput</span> <span>Screening</span> <span>Results</span> to <span>Improve</span> <span>Toxicity</span> <span>Predictions</span>.”</span> <em>Computational Toxicology (Amsterdam, Netherlands)</em> 8 (November): 1–12. <a href="https://doi.org/10.1016/j.comtox.2018.08.003">https://doi.org/10.1016/j.comtox.2018.08.003</a>.
+</div>
+<div id="ref-nrc_toxicity_1984" class="csl-entry" role="listitem">
+NRC. 1984. <span>“Toxicity <span>Testing</span>: <span>Strategies</span> to <span>Determine</span> <span>Needs</span> and <span>Priorities</span>.”</span> <em>National Academies</em>.
+</div>
+<div id="ref-oboyle_using_2014" class="csl-entry" role="listitem">
+O’Boyle, Noel M., Jonas Boström, Roger A. Sayle, and Adrian Gill. 2014. <span>“Using Matched Molecular Series as a Predictive Tool to Optimize Biological Activity.”</span> <em>Journal of Medicinal Chemistry</em> 57 (6): 2704–13. <a href="https://doi.org/10.1021/jm500022q">https://doi.org/10.1021/jm500022q</a>.
+</div>
+<div id="ref-oecd_guidance_2014" class="csl-entry" role="listitem">
+OECD. 2014. <span>“Guidance on <span>Grouping</span> of <span>Chemicals</span>, <span>Second</span> <span>Edition</span> <span></span> En <span></span> <span>OECD</span>.”</span> <a href="https://www.oecd.org/publications/guidance-on-grouping-of-chemicals-second-edition-9789264274679-en.htm">https://www.oecd.org/publications/guidance-on-grouping-of-chemicals-second-edition-9789264274679-en.htm</a>.
+</div>
+<div id="ref-patlewicz_building_2015" class="csl-entry" role="listitem">
+Patlewicz, G., N. Ball, P. J. Boogaard, R. A. Becker, and B. Hubesch. 2015. <span>“Building Scientific Confidence in the Development and Evaluation of Read-Across.”</span> <em>Regulatory Toxicology and Pharmacology: RTP</em> 72 (1): 117–33. <a href="https://doi.org/10.1016/j.yrtph.2015.03.015">https://doi.org/10.1016/j.yrtph.2015.03.015</a>.
+</div>
+<div id="ref-patlewicz_systematic_2024" class="csl-entry" role="listitem">
+Patlewicz, G., P. Karamertzanis, K. Paul Friedman, M. Sannicola, and I. Shah. 2024. <span>“A Systematic Analysis of Read-Across Within <span>REACH</span> Registration Dossiers.”</span> <em>Computational Toxicology</em> 30 (June): 100304. <a href="https://doi.org/10.1016/j.comtox.2024.100304">https://doi.org/10.1016/j.comtox.2024.100304</a>.
+</div>
+<div id="ref-patlewicz_can_2016" class="csl-entry" role="listitem">
+Patlewicz, Grace, Silvia Casati, David A. Basketter, David Asturiol, David W. Roberts, Jean-Pierre Lepoittevin, Andrew P. Worth, and Karin Aschberger. 2016. <span>“Can Currently Available Non-Animal Methods Detect Pre and Pro-Haptens Relevant for Skin Sensitization?”</span> <em>Regulatory Toxicology and Pharmacology: RTP</em> 82 (December): 147–55. <a href="https://doi.org/10.1016/j.yrtph.2016.08.007">https://doi.org/10.1016/j.yrtph.2016.08.007</a>.
+</div>
+<div id="ref-patlewicz_navigating_2018" class="csl-entry" role="listitem">
+Patlewicz, Grace, Mark T. D. Cronin, George Helman, Jason C. Lambert, Lucina E. Lizarraga, and Imran Shah. 2018. <span>“Navigating Through the Minefield of Read-Across Frameworks: <span>A</span> Commentary Perspective.”</span> <em>Computational Toxicology</em> 6 (May): 39–54. <a href="https://doi.org/10.1016/j.comtox.2018.04.002">https://doi.org/10.1016/j.comtox.2018.04.002</a>.
+</div>
+<div id="ref-patlewicz_towards_2023" class="csl-entry" role="listitem">
+Patlewicz, Grace, and Imran Shah. 2023. <span>“Towards Systematic Read-Across Using <span>Generalised</span> <span>Read</span>-<span>Across</span> (<span>GenRA</span>).”</span> <em>Computational Toxicology</em> 25: 100258. <a href="https://doi.org/10.1016/j.comtox.2022.100258">https://doi.org/10.1016/j.comtox.2022.100258</a>.
+</div>
+<div id="ref-RN53" class="csl-entry" role="listitem">
+Pedregosa, F., G. Varoquaux, A. Gramfort, V. Michel, B. Thirion, O. Grisel, M. Blondel, et al. 2011. <span>“Scikit-Learn: Machine Learning in Python.”</span> Journal Article. <em>Journal of Machine Learning Research</em> 12: 2825–30.
+</div>
+<div id="ref-pelillo_replicator_1999" class="csl-entry" role="listitem">
+Pelillo, Marcello. 1999. <span>“Replicator <span>Equations</span>, <span>Maximal</span> <span>Cliques</span>, and <span>Graph</span> <span>Isomorphism</span>.”</span> <em>Neural Computation</em> 11 (8): 1933–55. <a href="https://doi.org/10.1162/089976699300016034">https://doi.org/10.1162/089976699300016034</a>.
+</div>
+<div id="ref-perozzi_deepwalk_2014" class="csl-entry" role="listitem">
+Perozzi, Bryan, Rami Al-Rfou, and Steven Skiena. 2014. <span>“<span>DeepWalk</span>: <span>Online</span> <span>Learning</span> of <span>Social</span> <span>Representations</span>.”</span> In <em>Proceedings of the 20th <span>ACM</span> <span>SIGKDD</span> International Conference on <span>Knowledge</span> Discovery and Data Mining</em>, 701–10. <a href="https://doi.org/10.1145/2623330.2623732">https://doi.org/10.1145/2623330.2623732</a>.
+</div>
+<div id="ref-pradeep_evaluation_2021" class="csl-entry" role="listitem">
+Pradeep, Prachi, Richard Judson, David M. DeMarini, Nagalakshmi Keshava, Todd M. Martin, Jeffry Dean, Catherine F. Gibbons, et al. 2021. <span>“Evaluation of <span>Existing</span> <span>QSAR</span> <span>Models</span> and <span>Structural</span> <span>Alerts</span> and <span>Development</span> of <span>New</span> <span>Ensemble</span> <span>Models</span> for <span>Genotoxicity</span> <span>Using</span> a <span>Newly</span> <span>Compiled</span> <span>Experimental</span> <span>Dataset</span>.”</span> <em>Computational Toxicology (Amsterdam, Netherlands)</em> 18 (May). <a href="https://doi.org/10.1016/j.comtox.2021.100167">https://doi.org/10.1016/j.comtox.2021.100167</a>.
+</div>
+<div id="ref-ramakrishnan_topological_2013" class="csl-entry" role="listitem">
+Ramakrishnan, S, J Senbagamalar, and J Baskar Babujee. 2013. <span>“<span>Topological</span> <span>Indices</span> <span class="nocase">of</span> <span>Molecular</span> <span>Graphs</span> <span class="nocase">under</span> <span class="nocase">specific</span> <span class="nocase">chemical</span> <span class="nocase">reactions</span>.”</span> <em>International Journal of Computing Algorithm</em> 02.
+</div>
+<div id="ref-randic_1975" class="csl-entry" role="listitem">
+Randic, M. 1975. <span>“On the Characterisation of Molecular Branching.”</span> <em>J Am Chem Soc</em> 97: 6609–15.
+</div>
+<div id="ref-raymond_maximum_2002" class="csl-entry" role="listitem">
+Raymond, John W., and Peter Willett. 2002. <span>“Maximum Common Subgraph Isomorphism Algorithms for the Matching of Chemical Structures.”</span> <em>Journal of Computer-Aided Molecular Design</em> 16 (7): 521–33. <a href="https://doi.org/10.1023/A:1021271615909">https://doi.org/10.1023/A:1021271615909</a>.
+</div>
+<div id="ref-rehurek2011gensim" class="csl-entry" role="listitem">
+Rehurek, Radim, and Petr Sojka. 2011. <span>“Gensim–Python Framework for Vector Space Modelling.”</span> <em>NLP Centre, Faculty of Informatics, Masaryk University, Brno, Czech Republic</em> 3 (2).
+</div>
+<div id="ref-roberts_determinants_2008" class="csl-entry" role="listitem">
+Roberts, David W., and Aynur O. Aptula. 2008. <span>“Determinants of Skin Sensitisation Potential.”</span> <em>Journal of Applied Toxicology: JAT</em> 28 (3): 377–87. <a href="https://doi.org/10.1002/jat.1289">https://doi.org/10.1002/jat.1289</a>.
+</div>
+<div id="ref-rogers_extended-connectivity_2010" class="csl-entry" role="listitem">
+Rogers, David, and Mathew Hahn. 2010. <span>“Extended-<span>Connectivity</span> <span>Fingerprints</span>.”</span> <em>Journal of Chemical Information and Modeling</em> 50 (5): 742–54. <a href="https://doi.org/10.1021/ci100050t">https://doi.org/10.1021/ci100050t</a>.
+</div>
+<div id="ref-rovida_nam-supported_2021" class="csl-entry" role="listitem">
+Rovida, Costanza, Sylvia E. Escher, Matthias Herzler, Susanne H. Bennekou, Hennicke Kamp, Dinant E. Kroese, Lidka Maslankiewicz, et al. 2021. <span>“<span>NAM</span>-Supported Read-Across: <span>From</span> Case Studies to Regulatory Guidance in Safety Assessment.”</span> <em>ALTEX - Alternatives to Animal Experimentation</em> 38 (1): 140–50. <a href="https://doi.org/10.14573/altex.2010062">https://doi.org/10.14573/altex.2010062</a>.
+</div>
+<div id="ref-karateclub" class="csl-entry" role="listitem">
+Rozemberczki, Benedek, Oliver Kiss, and Rik Sarkar. 2020. <span>“<span class="nocase">Karate Club: An API Oriented Open-source Python Framework for Unsupervised Learning on Graphs</span>.”</span> In <em>Proceedings of the 29th ACM International Conference on Information and Knowledge Management (CIKM ’20)</em>, 3125–32. ACM.
+</div>
+<div id="ref-sabirov_information_2021" class="csl-entry" role="listitem">
+Sabirov, Denis Sh, and Igor S. Shepelevich. 2021. <span>“Information <span>Entropy</span> in <span>Chemistry</span>: <span>An</span> <span>Overview</span>.”</span> <em>Entropy</em> 23 (10): 1240. <a href="https://doi.org/10.3390/e23101240">https://doi.org/10.3390/e23101240</a>.
+</div>
+<div id="ref-scarselli_graph_2009" class="csl-entry" role="listitem">
+Scarselli, F., M. Gori, A. C. Tsoi, M. Hagenbuchner, and G. Monfardini. 2009. <span>“The <span>Graph</span> <span>Neural</span> <span>Network</span> <span>Model</span>.”</span> <em>IEEE Transactions on Neural Networks</em> 20 (1): 61–80. <a href="https://doi.org/10.1109/TNN.2008.2005605">https://doi.org/10.1109/TNN.2008.2005605</a>.
+</div>
+<div id="ref-schultz_strategy_2015" class="csl-entry" role="listitem">
+Schultz, T. W., P. Amcoff, E. Berggren, F. Gautier, M. Klaric, D. J. Knight, C. Mahony, M. Schwarz, A. White, and M. T. D. Cronin. 2015. <span>“A Strategy for Structuring and Reporting a Read-Across Prediction of Toxicity.”</span> <em>Regulatory Toxicology and Pharmacology: RTP</em> 72 (3): 586–601. <a href="https://doi.org/10.1016/j.yrtph.2015.05.016">https://doi.org/10.1016/j.yrtph.2015.05.016</a>.
+</div>
+<div id="ref-schultz_oecd_2018" class="csl-entry" role="listitem">
+Schultz, Terry W., Robert Diderich, Chanita D. Kuseva, and Ovanes G. Mekenyan. 2018. <span>“The <span>OECD</span> <span>QSAR</span> <span>Toolbox</span> <span>Starts</span> <span>Its</span> <span>Second</span> <span>Decade</span>.”</span> <em>Methods in Molecular Biology (Clifton, N.J.)</em> 1800: 55–77. <a href="https://doi.org/10.1007/978-1-4939-7899-1_2">https://doi.org/10.1007/978-1-4939-7899-1_2</a>.
+</div>
+<div id="ref-schultz_assessing_2019" class="csl-entry" role="listitem">
+Schultz, Terry W., Andrea-Nicole Richarz, and Mark T. D. Cronin. 2019. <span>“Assessing Uncertainty in Read-Across: <span>Questions</span> to Evaluate Toxicity Predictions Based on Knowledge Gained from Case Studies.”</span> <em>Computational Toxicology</em> 9 (February): 1–11. <a href="https://doi.org/10.1016/j.comtox.2018.10.003">https://doi.org/10.1016/j.comtox.2018.10.003</a>.
+</div>
+<div id="ref-shah_systematically_2016" class="csl-entry" role="listitem">
+Shah, Imran, Jie Liu, Richard S. Judson, Russell S. Thomas, and Grace Patlewicz. 2016. <span>“Systematically Evaluating Read-Across Prediction and Performance Using a Local Validity Approach Characterized by Chemical Structure and Bioactivity Information.”</span> <em>Regulatory Toxicology and Pharmacology: RTP</em> 79 (August): 12–24. <a href="https://doi.org/10.1016/j.yrtph.2016.05.008">https://doi.org/10.1016/j.yrtph.2016.05.008</a>.
+</div>
+<div id="ref-shah_genra_2024" class="csl-entry" role="listitem">
+Shah, Imran, and Grace Patlewicz. 2024. <span>“<span>GenRA</span>.”</span> <a href="https://www.comptox.epa.gov/genra">https://www.comptox.epa.gov/genra</a>.
+</div>
+<div id="ref-RN46" class="csl-entry" role="listitem">
+Shervashidze, Nino, Pascal Scweitzer, Erik Jan van Leeuwen, and Kurt Melhorn. 2011. <span>“Weisfeiler-Lehman Graph Kernels.”</span> Journal Article. <em>Journal of Machine Learning Research</em> 12 (77): 2539–61.
+</div>
+<div id="ref-siglidis_grakel_2020" class="csl-entry" role="listitem">
+Siglidis, Giannis, Giannis Nikolentzos, Stratis Limnios, Christos Giatsidis, Konstantinos Skianis, and Michalis Vazirgiannis. 2020. <span>“<span>GraKeL</span>: <span>A</span> <span>Graph</span> <span>Kernel</span> <span>Library</span> in <span>Python</span>.”</span> arXiv. <a href="https://doi.org/10.48550/arXiv.1806.02193">https://doi.org/10.48550/arXiv.1806.02193</a>.
+</div>
+<div id="ref-tate_repeat-dose_2021" class="csl-entry" role="listitem">
+Tate, Tia, John Wambaugh, Grace Patlewicz, and Imran Shah. 2021. <span>“Repeat-Dose Toxicity Prediction with <span>Generalized</span> <span>Read</span>-<span>Across</span> (<span>GenRA</span>) Using Targeted Transcriptomic Data: <span>A</span> Proof-of-Concept Case Study.”</span> <em>Computational Toxicology (Amsterdam, Netherlands)</em> 19 (August): 1–12. <a href="https://doi.org/10.1016/j.comtox.2021.100171">https://doi.org/10.1016/j.comtox.2021.100171</a>.
+</div>
+<div id="ref-RN35" class="csl-entry" role="listitem">
+Tenenbaum, J. B., V. de Silva, and J. C. Langford. 2000. <span>“A Global Geometric Framework for Nonlinear Dimensionality Reduction.”</span> Journal Article. <em>Science</em> 290 (5500): 2319–23. <a href="https://doi.org/10.1126/science.290.5500.2319">https://doi.org/10.1126/science.290.5500.2319</a>.
+</div>
+<div id="ref-todeschini_chemical_1992" class="csl-entry" role="listitem">
+Todeschini, R., R. Cazar, and E. Collina. 1992. <span>“The Chemical Meaning of Topological Indices.”</span> <em>Chemometrics and Intelligent Laboratory Systems</em> 15 (1): 51–59. <a href="https://doi.org/10.1016/0169-7439(92)80026-Z">https://doi.org/10.1016/0169-7439(92)80026-Z</a>.
+</div>
+<div id="ref-ullmann_algorithm_1976" class="csl-entry" role="listitem">
+Ullmann, J. R. 1976. <span>“An <span>Algorithm</span> for <span>Subgraph</span> <span>Isomorphism</span>.”</span> <em>Journal of the ACM</em> 23 (1): 31–42. https://doi.org/<a href="https://doi.org/10.1145/321921.321925">https://doi.org/10.1145/321921.321925</a>.
+</div>
+<div id="ref-etap_2024" class="csl-entry" role="listitem">
+USEPA. 2024. <span>“Scientific Studies Supporting Development of Transcriptomic Points of Departure for EPA Transcriptomic Assessment Products (ETAPs).”</span> https://doi.org/<a href="https://doi.org/10.23645/epacomptox.25365550">https://doi.org/10.23645/epacomptox.25365550</a>.
+</div>
+<div id="ref-verhaar_1992" class="csl-entry" role="listitem">
+Verhaar, HJM, CJ van Leeuwen, and JLM Hermens. 1992. <span>“Classifying Environmental Pollutants. <span>1.</span> Structure-Activity Relationships for Prediction of Aquatic Toxicity.”</span> Journal Article. <em>Chemosphere</em> 25: 471–91.
+</div>
+<div id="ref-scholkopf_fast_2007" class="csl-entry" role="listitem">
+Vishwanathan, S. V. N., Karsten M. Borgwardt, and Nicol N. Schraudolph. 2007. <span>“Fast <span>Computation</span> of <span>Graph</span> <span>Kernels</span>.”</span> In <em>Advances in <span>Neural</span> <span>Information</span> <span>Processing</span> <span>Systems</span> 19</em>, edited by Bernhard Schölkopf, John Platt, and Thomas Hofmann, 1449–56. The MIT Press. <a href="https://doi.org/10.7551/mitpress/7503.003.0186">https://doi.org/10.7551/mitpress/7503.003.0186</a>.
+</div>
+<div id="ref-wang_application_2012" class="csl-entry" role="listitem">
+Wang, Nina Ching Yi, Q. Jay Zhao, Scott C. Wesselkamper, Jason C. Lambert, Dan Petersen, and Janet K. Hess-Wilson. 2012. <span>“Application of Computational Toxicological Approaches in Human Health Risk Assessment. <span>I</span>. <span>A</span> Tiered Surrogate Approach.”</span> <em>Regulatory Toxicology and Pharmacology</em> 63 (1): 10–19. <a href="https://doi.org/10.1016/j.yrtph.2012.02.006">https://doi.org/10.1016/j.yrtph.2012.02.006</a>.
+</div>
+<div id="ref-wang_molecule_2019" class="csl-entry" role="listitem">
+Wang, Xiaofeng, Zhen Li, Mingjian Jiang, Shuang Wang, Shugang Zhang, and Zhiqiang Wei. 2019. <span>“Molecule <span>Property</span> <span>Prediction</span> <span>Based</span> on <span>Spatial</span> <span>Graph</span> <span>Embedding</span>.”</span> <em>Journal of Chemical Information and Modeling</em> 59 (9): 3817–28. <a href="https://doi.org/10.1021/acs.jcim.9b00410">https://doi.org/10.1021/acs.jcim.9b00410</a>.
+</div>
+<div id="ref-wiener_1947" class="csl-entry" role="listitem">
+Wiener, H. 1947. <span>“Structural Determination of Paraffin Boiling Points.”</span> <em>Journal of the American Chemical Society</em> 1: 17–20. <a href="https://doi.org/10.1021/ja01193a005">https://doi.org/10.1021/ja01193a005</a>.
+</div>
+<div id="ref-williams_comptox_2017" class="csl-entry" role="listitem">
+Williams, Antony J., Christopher M. Grulke, Jeff Edwards, Andrew D. McEachran, Kamel Mansouri, Nancy C. Baker, Grace Patlewicz, et al. 2017. <span>“The <span>CompTox</span> <span>Chemistry</span> <span>Dashboard</span>: A Community Data Resource for Environmental Chemistry.”</span> <em>Journal of Cheminformatics</em> 9 (1): 61. <a href="https://doi.org/10.1186/s13321-017-0247-6">https://doi.org/10.1186/s13321-017-0247-6</a>.
+</div>
+<div id="ref-wu_framework_2010" class="csl-entry" role="listitem">
+Wu, Shengde, Karen Blackburn, Jack Amburgey, Joanna Jaworska, and Thomas Federle. 2010. <span>“A Framework for Using Structural, Reactivity, Metabolic and Physicochemical Similarity to Evaluate the Suitability of Analogs for <span>SAR</span>-Based Toxicological Assessments.”</span> <em>Regulatory Toxicology and Pharmacology: RTP</em> 56 (1): 67–81. <a href="https://doi.org/10.1016/j.yrtph.2009.09.006">https://doi.org/10.1016/j.yrtph.2009.09.006</a>.
+</div>
+<div id="ref-xu_understanding_2020" class="csl-entry" role="listitem">
+Xu, Mengjia. 2020. <span>“Understanding Graph Embedding Methods and Their Applications.”</span> arXiv. <a href="https://doi.org/10.48550/arXiv.2012.08019">https://doi.org/10.48550/arXiv.2012.08019</a>.
+</div>
+<div id="ref-xu_understanding_2021" class="csl-entry" role="listitem">
+———. 2021. <span>“Understanding <span>Graph</span> <span>Embedding</span> <span>Methods</span> and <span>Their</span> <span>Applications</span>.”</span> <em>SIAM Review</em> 63 (4): 825–53. <a href="https://doi.org/10.1137/20m1386062">https://doi.org/10.1137/20m1386062</a>.
+</div>
+<div id="ref-yang_new_2015" class="csl-entry" role="listitem">
+Yang, Chihae, Aleksey Tarkhov, Jörg Marusczyk, Bruno Bienfait, Johann Gasteiger, Thomas Kleinoeder, Tomasz Magdziarz, et al. 2015. <span>“New Publicly Available Chemical Query Language, <span>CSRML</span>, to Support Chemotype Representations for Application to Data Mining and Modeling.”</span> <em>Journal of Chemical Information and Modeling</em> 55 (3): 510–28. <a href="https://doi.org/10.1021/ci500667v">https://doi.org/10.1021/ci500667v</a>.
+</div>
+<div id="ref-zager_graph_2008" class="csl-entry" role="listitem">
+Zager, Laura A., and George C. Verghese. 2008. <span>“Graph <span>Similarity</span> for Scoring and Matching.”</span> <em>Applied Mathematics Letters</em> 21 (1): 86–94. https://doi.org/<a href="https://doi.org/10.1016/j.aml.2007.01.006">https://doi.org/10.1016/j.aml.2007.01.006</a>.
+</div>
+<div id="ref-zhang_spvec_2019" class="csl-entry" role="listitem">
+Zhang, Yu-Fang, Xiangeng Wang, Aman Chandra Kaushik, Yanyi Chu, Xiaoqi Shan, Ming-Zhu Zhao, Qin Xu, and Dong-Qing Wei. 2019. <span>“<span>SPVec</span>: <span>A</span> <span>Word2vec</span>-<span>Inspired</span> <span>Feature</span> <span>Representation</span> <span>Method</span> for <span>Drug</span>-<span>Target</span> <span>Interaction</span> <span>Prediction</span>.”</span> <em>Frontiers in Chemistry</em> 7: 895. <a href="https://doi.org/10.3389/fchem.2019.00895">https://doi.org/10.3389/fchem.2019.00895</a>.
+</div>
+</div>
+<div style="page-break-after: always;"></div>
+</section>
+
+
+<div id="quarto-appendix" class="default"><section id="supplementary-information" class="level1 appendix"><h2 class="anchored quarto-appendix-heading">Supplementary information</h2><div class="quarto-appendix-contents">
+
+<p>For context, a few of the pertinent terms/definitions associated with graphs are described. A graph <span class="math display">\[ G(V, E) \]</span> is a visual representation of a collection of nodes (also called vertices depending on domain) and edges that connect these nodes providing a structure to represent entities and their relationships. There are three main types of edges that are typically found in a graph: undirected edges, directed edges and weighted edges.</p>
+<p><a href="#fig-gg" class="quarto-xref">Figure&nbsp;12</a> provides an example of an undirected graph with 5 nodes and 5 edges and the corresponding directed graph.</p>
+<div id="fig-gg" class="quarto-layout-panel">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-gg-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<div class="quarto-layout-row">
+<div class="quarto-layout-cell" style="flex-basis: 100.0%;justify-content: flex-start;">
+<img src="fig-gp.png" id="fig-gp" class="img-fluid figure-img" style="width:30.0%">
+</div>
+</div>
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-gg-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;12: Undirected and directed graph with 5 nodes and 5 edges.
+</figcaption>
+</figure>
+</div>
+<p>Undirected edges are those which identify a connection between nodes but without a given “flow”. Directed edges are those where is a clear direction between nodes e.g.&nbsp;within a metabolic graph where a parent chemical transforms into a metabolite. Weighted edges can occur in both directed or undirected edges to depict some quantitative value e.g.&nbsp;the rate of disappearance of parent chemical to its corresponding metabolite.</p>
+<p>The neighborhood of a node N(v) is the set of all nodes adjacent to v. In <a href="#fig-gg" class="quarto-xref">Figure&nbsp;12</a>, the neighborhood of node d would be expressed as N(d) = [b,c,e]. A <em>walk</em> comprises a sequence of edges and nodes, whereas a <em>path</em> is a walk with no repeating nodes visited. In <a href="#fig-path" class="quarto-xref">Figure&nbsp;13</a>, the sequence of nodes [a,b,d] is both a walk and a path in graph G.</p>
+<div id="fig-path" class="quarto-float quarto-figure quarto-figure-center anchored">
+<figure class="quarto-float quarto-float-fig figure">
+<div aria-describedby="fig-path-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+<img src="fig-path.png" class="img-fluid figure-img" style="width:30.0%">
+</div>
+<figcaption class="quarto-float-caption-bottom quarto-float-caption quarto-float-fig" id="fig-path-caption-0ceaefa1-69ba-4598-a22c-09a6ac19f8ca">
+Figure&nbsp;13: The sequence of nodes [a,c,d] is both a walk and a path on G since there are no repeating nodes in the sequence.
+</figcaption>
+</figure>
+</div>
+<p>Two graphs are isomorphic if there is a structure that preserves a one-to-one correspondence between the nodes and edges. In other words, if the two graphs differ only by the names of the edges and nodes but are otherwise structurally equivalent, they are said to be isomorphic.</p>
+</div></section></div></main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
